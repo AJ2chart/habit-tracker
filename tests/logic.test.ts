@@ -141,3 +141,22 @@ t("sommeil", () => {
   assert.equal(s.normalNightBadRate, 0);
 });
 console.log(`${passed} groupes au total (avec sommeil)`);
+
+t("rappel du soir", () => {
+  const r = { ...L.DEFAULT_REMINDER, enabled: true };
+  assert.deepEqual(L.reminderTimes(r), ["21:00"]);
+  assert.deepEqual(L.reminderTimes({ ...r, repeat: 60, until: "23:00" }), ["21:00", "22:00", "23:00"]);
+  assert.deepEqual(L.reminderTimes({ ...r, repeat: 30, until: "22:00" }), ["21:00", "21:30", "22:00"]);
+  const d = empty();
+  const now = new Date(2026, 10, 23, 20, 0);
+  assert.equal(L.plannedReminders(d, r, now, 3).length, 3);
+  d.journal["2026-11-23"] = { date: "2026-11-23", mood: 3, energy: null, text: "" };
+  const p = L.plannedReminders(d, r, now, 3);
+  assert.equal(p.length, 2);
+  assert.equal(p[0].day, "2026-11-24");
+  assert.ok(!L.isDayFilled(d, "2026-11-23", "mood_note"));
+  assert.equal(L.plannedReminders(d, r, new Date(2026, 10, 24, 22, 0), 1).length, 0);
+  assert.equal(L.plannedReminders(d, { ...r, enabled: false }, now).length, 0);
+  assert.deepEqual(L.parseReminderSettings({ reminder_enabled: "1", reminder_time: "20:30", reminder_repeat: "45" }), { ...L.DEFAULT_REMINDER, enabled: true, time: "20:30" });
+});
+console.log(`${passed} groupes au total (avec rappels)`);

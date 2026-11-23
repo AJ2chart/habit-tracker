@@ -1,0 +1,32 @@
+# Fabrique une nouvelle version installable Android (APK) dans le cloud d'Expo.
+# À lancer à la main (onglet Actions → « Nouvelle version Android » → Run workflow),
+# seulement quand une brique native a été ajoutée ; sinon, les mises à jour à distance suffisent.
+name: Nouvelle version Android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier le code (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Fabriquer l'APK
+        run: eas build --platform android --profile preview --non-interactive

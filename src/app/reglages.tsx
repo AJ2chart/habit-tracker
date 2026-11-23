@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BackupCard } from '@/components/settings/backup-card';
+import { ReminderCard } from '@/components/settings/reminder-card';
+import { loadSettings, saveSettings } from '@/db/settings';
+import { DEFAULT_REMINDER, parseReminderSettings, type ReminderSettings } from '@/logic';
 import { Card, Muted, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useAppData } from '@/hooks/use-app-data';
@@ -22,12 +25,26 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 export default function SettingsScreen() {
   const { db, data, reload } = useAppData();
   const [lastBackup, setLastBackup] = useState<string | null>(null);
+  const [reminder, setReminder] = useState<ReminderSettings>(DEFAULT_REMINDER);
 
   useEffect(() => {
-    void db
-      .getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = 'last_backup'")
-      .then((r) => setLastBackup(r?.value ?? null));
+    void loadSettings(db).then((s) => {
+      setLastBackup(s.last_backup ?? null);
+      setReminder(parseReminderSettings(s));
+    });
   }, [db, data]);
+
+  const changeReminder = async (r: ReminderSettings) => {
+    setReminder(r);
+    await saveSettings(db, {
+      reminder_enabled: r.enabled ? '1' : '0',
+      reminder_time: r.time,
+      reminder_repeat: String(r.repeat),
+      reminder_until: r.until,
+      reminder_criteria: r.criteria,
+    });
+    await reload(); // reprogramme les rappels
+  };
 
   const version = Constants.expoConfig?.version ?? '—';
   const update = Updates.isEnabled && !Updates.isEmbeddedLaunch && Updates.createdAt
@@ -36,6 +53,8 @@ export default function SettingsScreen() {
 
   return (
     <Screen title="Réglages" subtitle="Sauvegarde, confidentialité, appli">
+      <ReminderCard settings={reminder} onChange={(r) => void changeReminder(r)} />
+
       <BackupCard db={db} lastBackup={lastBackup} onDone={() => void reload()} />
 
       <Card title="Confidentialité">

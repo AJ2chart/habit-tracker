@@ -3,6 +3,9 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 
 import { loadData } from '@/db/repo';
+import { loadSettings } from '@/db/settings';
+import { parseReminderSettings } from '@/logic';
+import { syncReminders } from '@/notifications/reminders';
 import { toKey, type Data } from '@/logic';
 
 /**
@@ -16,7 +19,10 @@ export function useAppData() {
 
   const reload = useCallback(async () => {
     setToday(toKey(new Date()));
-    setData(await loadData(db));
+    const fresh = await loadData(db);
+    setData(fresh);
+    // Rappels du soir : reprogrammés selon l'état des journées (sans bloquer l'affichage).
+    void loadSettings(db).then((s) => syncReminders(fresh, parseReminderSettings(s)));
   }, [db]);
 
   useFocusEffect(
