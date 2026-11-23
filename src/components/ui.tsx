@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ComponentRef, type ReactNode } from 'react';
 import {
   Dimensions,
   Modal,
@@ -38,7 +38,7 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const kbRaw = useKeyboardHeight();
   const kb = kbRaw ? kbRaw + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const offset = useRef(0);
 
   // Quand le clavier s'ouvre, fait défiler pour garder le champ en cours de saisie visible.
