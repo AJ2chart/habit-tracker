@@ -122,6 +122,7 @@ export default function TodayScreen() {
             day={day}
             isToday={isToday}
             entry={data.sleep[day]}
+            previous={Object.keys(data.sleep).filter((k) => k < day).sort().map((k) => data.sleep[k]).pop()}
             onSave={(n) => run(() => saveSleep(db, { date: day, ...n }))}
             onDelete={() => run(() => deleteSleep(db, day))}
           />

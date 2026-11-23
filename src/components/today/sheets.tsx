@@ -5,7 +5,7 @@ import { Button, Chip, Field, Muted, Row, Sheet } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { fromKey, ruleLabel, type Data, type RecurringRule, type RuleType, type Slot } from '@/logic';
-import { isValidTime, normalizeTime } from '@/logic/time';
+import { TimeRange, shiftTime } from '@/components/time-wheel';
 
 const DAY_CHIPS: [number, string][] = [
   [1, 'L'],
@@ -52,37 +52,50 @@ export function AddSlotSheet({
   const [title, setTitle] = useState('');
   const [start, setStart] = useState('10:00');
   const [end, setEnd] = useState('11:00');
+  const [open, setOpen] = useState<'start' | 'end' | null>(null);
   const [habitId, setHabitId] = useState<string | null>(null);
   const [repeat, setRepeat] = useState<NewSlot['repeat']>('once');
   const [days, setDays] = useState<number[]>([]);
 
   useEffect(() => {
     if (!visible) return;
+    // Par défaut : la prochaine heure pleine (aujourd'hui) ou 09:00, pour une heure.
+    const now = new Date();
+    const isToday = day === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const next = isToday ? `${String(Math.min(23, now.getHours() + 1)).padStart(2, '0')}:00` : '09:00';
     setTitle(rule?.title ?? '');
-    setStart(rule?.start ?? '10:00');
-    setEnd(rule?.end ?? '11:00');
+    setStart(rule?.start ?? next);
+    setEnd(rule?.end ?? shiftTime(next, 60));
+    setOpen(null);
     setHabitId(rule?.habitId ?? null);
     setRepeat(rule?.type ?? 'once');
     setDays(rule && rule.type === 'custom' ? rule.days : [fromKey(day).getDay()]);
   }, [visible, day, rule]);
 
-  const s = normalizeTime(start);
-  const e = normalizeTime(end);
-  const timesOk = isValidTime(s) && isValidTime(e) && e > s;
+  const s = start;
+  const e = end;
+  const timesOk = e > s;
   const ok = title.trim().length > 0 && timesOk && (repeat !== 'custom' || days.length > 0);
 
   return (
     <Sheet visible={visible} onClose={onClose} title={rule ? 'Modifier la répétition' : 'Ajouter un créneau'}>
       <Field label="Intitulé" value={title} onChangeText={setTitle} placeholder="Ex. Appeler le plombier" autoFocus />
-      <Row>
-        <View style={styles.flex}>
-          <Field label="Début" value={start} onChangeText={setStart} onBlur={() => setStart(normalizeTime(start))} placeholder="09:00" keyboardType="numbers-and-punctuation" />
-        </View>
-        <View style={styles.flex}>
-          <Field label="Fin" value={end} onChangeText={setEnd} onBlur={() => setEnd(normalizeTime(end))} placeholder="10:00" keyboardType="numbers-and-punctuation" />
-        </View>
-      </Row>
-      {!timesOk && start && end ? <Text style={{ color: c.warn, fontSize: 13 }}>Heures au format 09:30, la fin après le début.</Text> : null}
+      <TimeRange
+        startLabel="Début"
+        endLabel="Fin"
+        start={start}
+        end={end}
+        onStart={(v) => {
+          // La fin suit le début en gardant la même durée.
+          const len = Math.max(15, (Number(end.slice(0, 2)) * 60 + Number(end.slice(3))) - (Number(start.slice(0, 2)) * 60 + Number(start.slice(3))));
+          setStart(v);
+          setEnd(shiftTime(v, len));
+        }}
+        onEnd={setEnd}
+        open={open}
+        setOpen={setOpen}
+      />
+      {!timesOk ? <Text style={{ color: c.warn, fontSize: 13 }}>La fin doit être après le début.</Text> : null}
 
       <Muted>Répétition</Muted>
       <View style={styles.wrap}>

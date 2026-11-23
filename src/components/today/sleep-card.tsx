@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, Chip, Field, Muted, Row } from '@/components/ui';
+import { TimeRange } from '@/components/time-wheel';
+import { Button, Card, Chip, Muted, Row } from '@/components/ui';
 import { MoodColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { addDays, formatDuration, fromKey, sleepMinutes, type SleepEntry } from '@/logic';
-import { isValidTime, normalizeTime } from '@/logic/time';
 
 export const SleepQualityLabels = ['Très mauvaise', 'Mauvaise', 'Moyenne', 'Bonne', 'Excellente'] as const;
 const AWAKENINGS = [0, 1, 2, 3];
@@ -20,36 +20,38 @@ export function SleepCard({
   day,
   isToday,
   entry,
+  previous,
   onSave,
   onDelete,
 }: {
   day: string;
   isToday: boolean;
   entry: SleepEntry | undefined;
+  /** Dernière nuit notée avant ce jour : ses heures sont proposées par défaut. */
+  previous: SleepEntry | undefined;
   onSave: (d: Draft) => void;
   onDelete: () => void;
 }) {
   const c = useTheme();
   const [editing, setEditing] = useState(!entry);
-  const [bed, setBed] = useState(entry?.bed ?? '');
-  const [wake, setWake] = useState(entry?.wake ?? '');
+  const [bed, setBed] = useState(entry?.bed ?? previous?.bed ?? '23:00');
+  const [wake, setWake] = useState(entry?.wake ?? previous?.wake ?? '07:00');
+  const [open, setOpen] = useState<'start' | 'end' | null>(null);
   const [quality, setQuality] = useState<number | null>(entry?.quality ?? null);
   const [awakenings, setAwakenings] = useState<number | null>(entry?.awakenings ?? null);
 
   useEffect(() => {
     setEditing(!entry);
-    setBed(entry?.bed ?? '');
-    setWake(entry?.wake ?? '');
+    setBed(entry?.bed ?? previous?.bed ?? '23:00');
+    setWake(entry?.wake ?? previous?.wake ?? '07:00');
+    setOpen(null);
     setQuality(entry?.quality ?? null);
     setAwakenings(entry?.awakenings ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day, !!entry]);
 
-  const b = normalizeTime(bed);
-  const w = normalizeTime(wake);
-  const timesOk = isValidTime(b) && isValidTime(w);
-  const duration = timesOk ? sleepMinutes(b, w) : null;
-  const plausible = duration != null && duration >= 60 && duration <= 16 * 60;
+  const duration = sleepMinutes(bed, wake);
+  const plausible = duration >= 60 && duration <= 16 * 60;
 
   const short = (k: string) => fromKey(k).toLocaleDateString('fr-FR', { weekday: 'long' });
   const title = isToday ? 'Nuit dernière' : `Nuit du ${short(addDays(day, -1))} au ${short(day)}`;
@@ -80,16 +82,10 @@ export function SleepCard({
   }
 
   return (
-    <Card title={title} right={duration != null && plausible ? <Muted>{formatDuration(duration)}</Muted> : undefined}>
-      <Row>
-        <View style={styles.flex}>
-          <Field label="Coucher" value={bed} onChangeText={setBed} onBlur={() => setBed(normalizeTime(bed))} placeholder="23:00" keyboardType="numbers-and-punctuation" />
-        </View>
-        <View style={styles.flex}>
-          <Field label="Lever" value={wake} onChangeText={setWake} onBlur={() => setWake(normalizeTime(wake))} placeholder="07:00" keyboardType="numbers-and-punctuation" />
-        </View>
-      </Row>
-      {timesOk && !plausible ? <Text style={{ color: c.warn, fontSize: 13 }}>Durée inhabituelle : vérifie les heures.</Text> : null}
+    <Card title={title} right={plausible ? <Muted>{formatDuration(duration)}</Muted> : undefined}>
+      <TimeRange startLabel="Coucher" endLabel="Lever" start={bed} end={wake} onStart={setBed} onEnd={setWake} open={open} setOpen={setOpen} />
+      {!entry && previous && !open ? <Muted>Heures de ta dernière nuit notée : touche-les pour les changer.</Muted> : null}
+      {!plausible ? <Text style={{ color: c.warn, fontSize: 13 }}>Durée inhabituelle : vérifie les heures.</Text> : null}
 
       <Muted>Qualité ressentie</Muted>
       <Row>
@@ -113,9 +109,9 @@ export function SleepCard({
           {entry ? <Button label="Annuler" variant="ghost" onPress={() => setEditing(false)} /> : null}
           <Button
             label="Enregistrer"
-            disabled={!timesOk || !plausible}
+            disabled={!plausible}
             onPress={() => {
-              onSave({ bed: b, wake: w, quality, awakenings });
+              onSave({ bed, wake, quality, awakenings });
               setEditing(false);
             }}
           />
