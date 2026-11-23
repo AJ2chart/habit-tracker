@@ -1,6 +1,7 @@
 import { addDays, weekday } from "./dates";
 import { isChecked } from "./habits";
 import { tagsOf } from "./search";
+import { sleepMinutes } from "./sleep";
 import type { Data, DayKey, JournalEntry } from "./types";
 
 export const isBadDay = (j?: JournalEntry) => !!j && j.mood !== null && j.mood <= 1;
@@ -26,7 +27,19 @@ export interface Insights {
   hardestWeekday: { weekday: number; total: number; bad: number } | null;
   badTags: { tag: string; count: number }[];
   goodTags: { tag: string; count: number }[];
+  /** Nuit précédant les jours difficiles contre celle des bons jours ; null sans données de sommeil suffisantes. */
+  sleep: {
+    badMinutes: number;
+    goodMinutes: number;
+    badQuality: number | null;
+    goodQuality: number | null;
+    /** Part des jours difficiles après une nuit courte (< 6 h 30) et après une nuit normale */
+    shortNightBadRate: number | null;
+    normalNightBadRate: number | null;
+  } | null;
 }
+
+export const SHORT_NIGHT = 6 * 60 + 30;
 
 function dayTags(data: Data, k: DayKey): string[] {
   let t = tagsOf(data.journal[k]?.text);
@@ -110,7 +123,28 @@ export function computeInsights(data: Data, today: DayKey, windowDays = 30): Ins
     .slice(0, 3)
     .map((tag) => ({ tag, count: cg[tag] }));
 
+  const nightOf = (k: DayKey) => data.sleep?.[k];
+  const avgMin = (list: DayKey[]) => {
+    const v = list.map(nightOf).filter((x) => !!x).map((x) => sleepMinutes(x!.bed, x!.wake));
+    return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
+  };
+  const avgQ = (list: DayKey[]) => {
+    const v = list.map((k) => nightOf(k)?.quality).filter((x): x is NonNullable<typeof x> => x != null) as number[];
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  const withNight = days.filter((k) => nightOf(k));
+  const short = withNight.filter((k) => sleepMinutes(nightOf(k)!.bed, nightOf(k)!.wake) < SHORT_NIGHT);
+  const normal = withNight.filter((k) => !short.includes(k));
+  const badRate = (list: DayKey[]) => (list.length >= 2 ? Math.round((list.filter((k) => isBadDay(data.journal[k])).length / list.length) * 100) : null);
+  const sb2 = avgMin(bad);
+  const sg2 = avgMin(good);
+  const sleep =
+    sb2 != null && sg2 != null
+      ? { badMinutes: sb2, goodMinutes: sg2, badQuality: avgQ(bad), goodQuality: avgQ(good), shortNightBadRate: badRate(short), normalNightBadRate: badRate(normal) }
+      : null;
+
   return {
+    sleep,
     badDays: bad.length,
     goodDays: good.length,
     habits,

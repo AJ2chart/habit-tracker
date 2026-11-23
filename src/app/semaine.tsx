@@ -11,6 +11,9 @@ import { useTheme } from '@/hooks/use-theme';
 import {
   PERIOD_UNIT,
   addDays,
+  averageSleep,
+  formatDuration,
+  sleepMinutes,
   challengeStep,
   fromKey,
   goalProgress,
@@ -73,6 +76,8 @@ export default function WeekScreen() {
   const checksGoal = habits.reduce((a, h) => a + h.perWeek, 0);
   const badDays = days.filter((d) => d <= today && isBadDay(data.journal[d])).length;
   const weeklyGoals = data.goals.filter((g) => g.level === 'hebdo' && isActiveAt(g, monday));
+  const nights = days.map((d) => data.sleep[d] ?? null);
+  const sleepAvg = averageSleep(nights);
   const rules = data.rules.filter((r) => !r.until || r.until >= today).sort((a, b) => a.start.localeCompare(b.start));
 
   return (
@@ -88,6 +93,44 @@ export default function WeekScreen() {
         <Stat value={`${checks}/${checksGoal}`} label="habitudes cochées" />
         <Stat value={String(badDays)} label={badDays > 1 ? 'jours difficiles' : 'jour difficile'} warn={badDays > 0} />
       </Row>
+
+      <Card title="Sommeil" right={sleepAvg ? <Muted>{`moyenne ${formatDuration(sleepAvg.minutes)}`}</Muted> : undefined}>
+        {sleepAvg ? (
+          <>
+            <View style={styles.bars}>
+              {nights.map((n, i) => {
+                const m = n ? sleepMinutes(n.bed, n.wake) : 0;
+                return (
+                  <View key={i} style={styles.barCol}>
+                    <Text style={[styles.barNum, { color: c.textSecondary }]}>{n ? formatDuration(m).replace(' h ', 'h').replace(' h', 'h') : ''}</Text>
+                    <View style={[styles.barTrack, { backgroundColor: c.backgroundSelected }]}>
+                      <View
+                        style={{
+                          height: `${Math.min(100, Math.round((m / 600) * 100))}%` as `${number}%`,
+                          backgroundColor: n && m < 390 ? c.warn : c.goal,
+                          borderRadius: 4,
+                        }}
+                      />
+                    </View>
+                    <Text style={[styles.barLabel, { color: days[i] === today ? c.text : c.textSecondary }]}>{DAY_LETTERS[i]}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <Muted>
+              {[
+                `${sleepAvg.nights} nuit${sleepAvg.nights > 1 ? 's' : ''} notée${sleepAvg.nights > 1 ? 's' : ''}`,
+                sleepAvg.spread != null ? `coucher ${sleepAvg.spread <= 30 ? 'régulier' : sleepAvg.spread <= 60 ? 'assez variable' : 'très variable'} (± ${sleepAvg.spread} min)` : '',
+                'en rouge : moins de 6 h 30',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </Muted>
+          </>
+        ) : (
+          <Muted>Aucune nuit notée cette semaine. Renseigne-la chaque matin dans l'onglet Aujourd'hui.</Muted>
+        )}
+      </Card>
 
       <Card title="Habitudes">
         {habits.length === 0 ? <Muted>Aucune habitude.</Muted> : null}

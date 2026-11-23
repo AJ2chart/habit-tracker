@@ -74,6 +74,18 @@ export interface WeeklyReview {
   change: string;
 }
 
+/** 0 = Très mauvaise … 4 = Excellente */
+export type SleepQuality = 0 | 1 | 2 | 3 | 4;
+
+/** Nuit rattachée au jour du réveil : la nuit du dimanche au lundi compte pour le lundi. */
+export interface SleepEntry {
+  date: DayKey;
+  bed: string;
+  wake: string;
+  quality: SleepQuality | null;
+  awakenings: number | null;
+}
+
 /** Instantané des données nécessaire aux calculs. */
 export interface Data {
   habits: Habit[];
@@ -85,4 +97,6 @@ export interface Data {
   journal: Record<DayKey, JournalEntry>;
   goals: Goal[];
   reviews: Record<DayKey, WeeklyReview>;
+  /** date du réveil → nuit */
+  sleep: Record<DayKey, SleepEntry>;
 }

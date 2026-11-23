@@ -214,3 +214,25 @@ export async function saveReview(db: SQLiteDatabase, weekStart: DayKey, r: { goo
     r.change,
   );
 }
+
+// ——— Sommeil ———
+
+export async function saveSleep(
+  db: SQLiteDatabase,
+  n: { date: DayKey; bed: string; wake: string; quality: number | null; awakenings: number | null },
+) {
+  await db.runAsync(
+    `INSERT INTO sleep_entries (date, bed_time, wake_time, quality, awakenings) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(date) DO UPDATE SET bed_time = excluded.bed_time, wake_time = excluded.wake_time, quality = excluded.quality,
+       awakenings = excluded.awakenings, updated_at = datetime('now')`,
+    n.date,
+    n.bed,
+    n.wake,
+    n.quality,
+    n.awakenings,
+  );
+}
+
+export async function deleteSleep(db: SQLiteDatabase, date: DayKey) {
+  await db.runAsync('DELETE FROM sleep_entries WHERE date = ?', date);
+}

@@ -9,6 +9,7 @@ export const BACKUP_TABLES = [
   'journal_entries',
   'goals',
   'weekly_reviews',
+  'sleep_entries',
   'settings',
 ] as const;
 

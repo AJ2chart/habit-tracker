@@ -9,7 +9,7 @@ const t = (name: string, fn: () => void) => {
   console.log("ok -", name);
 };
 
-const empty = (): Data => ({ habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {} });
+const empty = (): Data => ({ habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {} });
 
 t("dates", () => {
   assert.equal(L.mondayOf("2026-11-23"), "2026-11-23"); // lundi
@@ -118,3 +118,26 @@ t("challenges", () => {
   assert.equal(L.challengeStep({ ...g, endDate: null }, "2026-12-09"), null);
 });
 console.log(`${passed} groupes au total`);
+
+t("sommeil", () => {
+  assert.equal(L.sleepMinutes("23:30", "07:00"), 450);
+  assert.equal(L.sleepMinutes("00:30", "07:00"), 390);
+  assert.equal(L.formatDuration(450), "7 h 30");
+  assert.equal(L.formatDuration(420), "7 h");
+  assert.equal(L.bedtimeOffset("23:00"), -60);
+  assert.equal(L.bedtimeSpread([{ bed: "23:00" }, { bed: "23:00" }, { bed: "23:00" }] as never), 0);
+  const d = empty();
+  const today = "2026-11-23";
+  for (let i = 1; i <= 20; i++) {
+    const k = L.addDays(today, -i);
+    const bad = i % 4 === 0;
+    d.journal[k] = { date: k, mood: bad ? 0 : 4, energy: null, text: "" };
+    d.sleep[k] = { date: k, bed: bad ? "01:30" : "23:00", wake: "07:00", quality: bad ? 1 : 3, awakenings: null };
+  }
+  const s = L.computeInsights(d, today)!.sleep!;
+  assert.equal(s.badMinutes, 330);
+  assert.equal(s.goodMinutes, 480);
+  assert.equal(s.shortNightBadRate, 100);
+  assert.equal(s.normalNightBadRate, 0);
+});
+console.log(`${passed} groupes au total (avec sommeil)`);

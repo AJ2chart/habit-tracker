@@ -6,6 +6,7 @@ import { AddHabitSheet, AddSlotSheet, ManageHabitsSheet, SlotDetailSheet, type N
 import { HabitsCard } from '@/components/today/habits-card';
 import { JournalCard } from '@/components/today/journal-card';
 import { ScheduleCard } from '@/components/today/schedule-card';
+import { SleepCard } from '@/components/today/sleep-card';
 import { Body, Button, Card, IconButton, Muted, Screen } from '@/components/ui';
 import { MoodColors, Spacing } from '@/constants/theme';
 import {
@@ -13,9 +14,11 @@ import {
   addRule,
   addSlot,
   archiveHabit,
+  deleteSleep,
   deleteSlot,
   ensureOccurrences,
   saveJournal,
+  saveSleep,
   saveSlotNote,
   setHabitChecked,
   setSlotDone,
@@ -112,6 +115,16 @@ export default function TodayScreen() {
             <Muted>Trois questions, trois minutes.</Muted>
             <Button label="Faire ma revue" variant="small" onPress={() => router.navigate('/semaine')} />
           </View>
+        ) : null}
+
+        {day <= today ? (
+          <SleepCard
+            day={day}
+            isToday={isToday}
+            entry={data.sleep[day]}
+            onSave={(n) => run(() => saveSleep(db, { date: day, ...n }))}
+            onDelete={() => run(() => deleteSleep(db, day))}
+          />
         ) : null}
 
         <ScheduleCard

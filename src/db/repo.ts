@@ -8,6 +8,7 @@ import type {
   JournalEntry,
   Mood,
   RecurringRule,
+  SleepEntry,
   Slot,
   WeeklyReview,
 } from '@/logic';
@@ -55,11 +56,12 @@ type GoalRow = {
   period_start: string;
   end_date: string | null;
 };
+type SleepRow = { date: string; bed_time: string; wake_time: string; quality: number | null; awakenings: number | null };
 type ReviewRow = { week_start: string; good: string; hard: string; change: string };
 
 /** Charge toutes les données nécessaires aux calculs. */
 export async function loadData(db: SQLiteDatabase): Promise<Data> {
-  const [habits, checks, rules, slots, journal, goals, reviews] = await Promise.all([
+  const [habits, checks, rules, slots, journal, goals, reviews, sleep] = await Promise.all([
     db.getAllAsync<HabitRow>('SELECT id, name, per_week, archived FROM habits ORDER BY created_at'),
     db.getAllAsync<CheckRow>('SELECT habit_id, date FROM habit_checks'),
     db.getAllAsync<RuleRow>('SELECT * FROM recurring_rules'),
@@ -67,9 +69,10 @@ export async function loadData(db: SQLiteDatabase): Promise<Data> {
     db.getAllAsync<JournalRow>('SELECT date, mood, energy, text FROM journal_entries'),
     db.getAllAsync<GoalRow>('SELECT * FROM goals WHERE archived = 0 ORDER BY created_at'),
     db.getAllAsync<ReviewRow>('SELECT week_start, good, hard, change FROM weekly_reviews'),
+    db.getAllAsync<SleepRow>('SELECT date, bed_time, wake_time, quality, awakenings FROM sleep_entries'),
   ]);
 
-  const data: Data = { habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {} };
+  const data: Data = { habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {} };
 
   data.habits = habits.map(
     (h): Habit => ({ id: h.id, name: h.name, perWeek: h.per_week, archived: h.archived === 1 }),
@@ -130,6 +133,15 @@ export async function loadData(db: SQLiteDatabase): Promise<Data> {
       hard: r.hard,
       change: r.change,
     } satisfies WeeklyReview;
+
+  for (const n of sleep)
+    data.sleep[n.date] = {
+      date: n.date,
+      bed: n.bed_time,
+      wake: n.wake_time,
+      quality: n.quality as SleepEntry['quality'],
+      awakenings: n.awakenings,
+    };
 
   return data;
 }

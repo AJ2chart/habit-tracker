@@ -6,3 +6,4 @@ export * from "./goals";
 export * from "./search";
 export * from "./insights";
 export * from "./time";
+export * from "./sleep";
