@@ -35,6 +35,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>Journal</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={require('@/assets/images/tabIcons/journal.png')} renderingMode="template" />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="reglages">
+        <NativeTabs.Trigger.Label>Réglages</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={require('@/assets/images/tabIcons/settings.png')} renderingMode="template" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

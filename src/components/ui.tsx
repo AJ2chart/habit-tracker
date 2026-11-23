@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ComponentRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import {
   Dimensions,
   Modal,
@@ -193,16 +193,36 @@ export function Chip({
   );
 }
 
-export function Field({ label, style, ...props }: TextInputProps & { label: string }) {
+export function Field({ label, style, secureTextEntry, ...props }: TextInputProps & { label: string }) {
   const c = useTheme();
+  const [hidden, setHidden] = useState(true);
+  const input = (
+    <TextInput
+      placeholderTextColor={c.textSecondary}
+      secureTextEntry={secureTextEntry ? hidden : false}
+      style={[styles.input, { color: c.text, backgroundColor: c.background, borderColor: c.line }, secureTextEntry && styles.inputWithToggle, style]}
+      {...props}
+    />
+  );
   return (
     <View style={styles.field}>
       <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>{label}</Text>
-      <TextInput
-        placeholderTextColor={c.textSecondary}
-        style={[styles.input, { color: c.text, backgroundColor: c.background, borderColor: c.line }, style]}
-        {...props}
-      />
+      {secureTextEntry ? (
+        <View style={styles.secureWrap}>
+          {input}
+          {/* Mot de passe : bouton pour vérifier ce qu'on tape. */}
+          <Pressable
+            onPress={() => setHidden(!hidden)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? 'Afficher le mot de passe' : 'Masquer le mot de passe'}
+            style={styles.toggle}>
+            <Text style={[styles.toggleText, { color: c.textSecondary }]}>{hidden ? 'Afficher' : 'Masquer'}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        input
+      )}
     </View>
   );
 }
@@ -269,6 +289,10 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12 },
   field: { gap: 4 },
   fieldLabel: { fontSize: 13 },
+  secureWrap: { justifyContent: 'center' },
+  inputWithToggle: { paddingRight: 80 },
+  toggle: { position: 'absolute', right: 12 },
+  toggleText: { fontSize: 13, fontWeight: '500' },
   input: { borderWidth: 1, borderRadius: Radius.control, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   sheet: { borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '85%' },
