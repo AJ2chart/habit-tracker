@@ -4,9 +4,17 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BackupCard } from '@/components/settings/backup-card';
+import { MorningCard } from '@/components/settings/morning-card';
 import { ReminderCard } from '@/components/settings/reminder-card';
 import { loadSettings, saveSettings } from '@/db/settings';
-import { DEFAULT_REMINDER, parseReminderSettings, type ReminderSettings } from '@/logic';
+import {
+  DEFAULT_MORNING,
+  DEFAULT_REMINDER,
+  parseMorningSettings,
+  parseReminderSettings,
+  type MorningSettings,
+  type ReminderSettings,
+} from '@/logic';
 import { Card, Muted, Screen } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useAppData } from '@/hooks/use-app-data';
@@ -26,11 +34,13 @@ export default function SettingsScreen() {
   const { db, data, reload } = useAppData();
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [reminder, setReminder] = useState<ReminderSettings>(DEFAULT_REMINDER);
+  const [morning, setMorning] = useState<MorningSettings>(DEFAULT_MORNING);
 
   useEffect(() => {
     void loadSettings(db).then((s) => {
       setLastBackup(s.last_backup ?? null);
       setReminder(parseReminderSettings(s));
+      setMorning(parseMorningSettings(s));
     });
   }, [db, data]);
 
@@ -51,8 +61,21 @@ export default function SettingsScreen() {
     ? Updates.createdAt.toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
     : 'version d’origine';
 
+  const changeMorning = async (m: MorningSettings) => {
+    setMorning(m);
+    await saveSettings(db, {
+      morning_enabled: m.enabled ? '1' : '0',
+      morning_time: m.time,
+      morning_sticky: m.sticky ? '1' : '0',
+      morning_criteria: m.criteria,
+    });
+    await reload(); // reprogramme les rappels
+  };
+
   return (
     <Screen title="Réglages" subtitle="Sauvegarde, confidentialité, appli">
+      <MorningCard settings={morning} onChange={(m) => void changeMorning(m)} />
+
       <ReminderCard settings={reminder} onChange={(r) => void changeReminder(r)} />
 
       <BackupCard db={db} lastBackup={lastBackup} onDone={() => void reload()} />

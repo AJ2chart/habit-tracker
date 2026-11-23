@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 
 import { loadData } from '@/db/repo';
 import { loadSettings } from '@/db/settings';
-import { parseReminderSettings } from '@/logic';
+import { parseMorningSettings, parseReminderSettings } from '@/logic';
 import { syncReminders } from '@/notifications/reminders';
 import { toKey, type Data } from '@/logic';
 
@@ -21,8 +21,8 @@ export function useAppData() {
     setToday(toKey(new Date()));
     const fresh = await loadData(db);
     setData(fresh);
-    // Rappels du soir : reprogrammés selon l'état des journées (sans bloquer l'affichage).
-    void loadSettings(db).then((s) => syncReminders(fresh, parseReminderSettings(s)));
+    // Rappels du matin et du soir : reprogrammés selon l'état des journées (sans bloquer l'affichage).
+    void loadSettings(db).then((s) => syncReminders(fresh, parseReminderSettings(s), parseMorningSettings(s)));
   }, [db]);
 
   useFocusEffect(

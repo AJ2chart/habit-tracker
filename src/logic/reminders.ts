@@ -1,4 +1,5 @@
 import { addDays } from './dates';
+import { missingOccurrences } from './recurring';
 import type { Data, DayKey } from './types';
 
 /** Ce qui compte comme une journée « remplie ». */
@@ -72,6 +73,68 @@ export function plannedReminders(data: Data, r: ReminderSettings, now: Date, day
       const at = new Date(y, mo - 1, d, Number(t.slice(0, 2)), Number(t.slice(3, 5)));
       if (at > now) out.push({ day, at });
     }
+  }
+  return out;
+}
+
+// ——— Rappel du matin : la nuit, puis la journée à préparer ———
+
+/** Ce qui compte comme « matin fait ». */
+export type MorningCriteria = 'sleep' | 'sleep_plan';
+
+export interface MorningSettings {
+  enabled: boolean;
+  time: string;
+  /** Android : notification impossible à balayer tant que ce n'est pas fait */
+  sticky: boolean;
+  criteria: MorningCriteria;
+}
+
+export const DEFAULT_MORNING: MorningSettings = { enabled: false, time: '08:00', sticky: true, criteria: 'sleep' };
+
+export const MORNING_CRITERIA_LABELS: Record<MorningCriteria, string> = {
+  sleep: 'Nuit notée',
+  sleep_plan: 'Nuit notée + un créneau prévu',
+};
+
+export function parseMorningSettings(s: Record<string, string>): MorningSettings {
+  const time = /^\d{2}:\d{2}$/.test(s.morning_time ?? '') ? s.morning_time : DEFAULT_MORNING.time;
+  const criteria: MorningCriteria = s.morning_criteria === 'sleep_plan' ? 'sleep_plan' : 'sleep';
+  return { enabled: s.morning_enabled === '1', time, sticky: s.morning_sticky !== '0', criteria };
+}
+
+/** Créneaux du jour, y compris les tâches répétées pas encore créées (jours à venir). */
+export function slotsForDay(data: Data, day: DayKey) {
+  const existing = data.slots[day] ?? [];
+  let n = 0;
+  const virtual = missingOccurrences(day, data.rules, existing, (h) => (data.checks[day] ?? []).includes(h), () => `v${n++}`);
+  return [...existing, ...virtual].sort((a, b) => a.start.localeCompare(b.start));
+}
+
+export function isMorningDone(data: Data, day: DayKey, criteria: MorningCriteria): boolean {
+  if (!data.sleep[day]) return false;
+  return criteria === 'sleep' || slotsForDay(data, day).length > 0;
+}
+
+/** Texte de la notification du matin : la nuit, puis l'emploi du temps du jour. */
+export function morningMessage(data: Data, day: DayKey): { title: string; body: string } {
+  const slots = slotsForDay(data, day);
+  const plan = slots.length
+    ? `${slots.length} créneau${slots.length > 1 ? 'x' : ''} aujourd'hui · 1er à ${slots[0].start} ${slots[0].title}`
+    : "Rien de prévu : prends une minute pour planifier ta journée.";
+  return { title: 'Bonjour ! Comment as-tu dormi ?', body: `Note ta nuit en quelques secondes. ${plan}` };
+}
+
+export function plannedMorning(data: Data, m: MorningSettings, now: Date, days = 7): { day: DayKey; at: Date }[] {
+  if (!m.enabled) return [];
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const out: { day: DayKey; at: Date }[] = [];
+  for (let i = 0; i < days; i++) {
+    const day = addDays(today, i);
+    if (isMorningDone(data, day, m.criteria)) continue;
+    const [y, mo, d] = day.split('-').map(Number);
+    const at = new Date(y, mo - 1, d, Number(m.time.slice(0, 2)), Number(m.time.slice(3, 5)));
+    if (at > now) out.push({ day, at });
   }
   return out;
 }

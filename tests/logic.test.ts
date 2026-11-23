@@ -160,3 +160,21 @@ t("rappel du soir", () => {
   assert.deepEqual(L.parseReminderSettings({ reminder_enabled: "1", reminder_time: "20:30", reminder_repeat: "45" }), { ...L.DEFAULT_REMINDER, enabled: true, time: "20:30" });
 });
 console.log(`${passed} groupes au total (avec rappels)`);
+
+t("rappel du matin", () => {
+  const m = { ...L.DEFAULT_MORNING, enabled: true };
+  const d = empty();
+  const now = new Date(2026, 10, 23, 7, 0);
+  assert.equal(L.plannedMorning(d, m, now, 2).length, 2);
+  assert.match(L.morningMessage(d, "2026-11-23").body, /Rien de prévu/);
+  d.rules = [{ id: "r", title: "Travail profond", start: "09:00", end: "11:00", habitId: null, type: "weekdays", days: [], from: "2026-11-01" }];
+  assert.match(L.morningMessage(d, "2026-11-24").body, /1 créneau aujourd'hui · 1er à 09:00 Travail profond/);
+  d.sleep["2026-11-23"] = { date: "2026-11-23", bed: "23:00", wake: "07:00", quality: 3, awakenings: null };
+  assert.ok(L.isMorningDone(d, "2026-11-23", "sleep"));
+  assert.ok(L.isMorningDone(d, "2026-11-23", "sleep_plan"));
+  d.sleep["2026-11-22"] = { date: "2026-11-22", bed: "23:00", wake: "07:00", quality: 3, awakenings: null };
+  assert.ok(!L.isMorningDone(d, "2026-11-22", "sleep_plan")); // dimanche : pas de créneau en semaine
+  assert.equal(L.plannedMorning(d, m, now, 2)[0].day, "2026-11-24");
+  assert.deepEqual(L.parseMorningSettings({ morning_enabled: "1", morning_sticky: "0" }), { ...L.DEFAULT_MORNING, enabled: true, sticky: false });
+});
+console.log(`${passed} groupes au total (avec matin)`);

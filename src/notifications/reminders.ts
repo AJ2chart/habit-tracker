@@ -1,10 +1,20 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { isDayFilled, plannedReminders, type Data, type ReminderSettings } from '@/logic';
+import {
+  isDayFilled,
+  isMorningDone,
+  morningMessage,
+  plannedMorning,
+  plannedReminders,
+  type Data,
+  type MorningSettings,
+  type ReminderSettings,
+} from '@/logic';
 
 const CHANNEL = 'evening-reminder';
 const PREFIX = 'reminder-';
+const MORNING = 'morning-';
 
 /** Affiche les notifications même quand l'appli est ouverte. */
 Notifications.setNotificationHandler({
@@ -19,8 +29,8 @@ Notifications.setNotificationHandler({
 async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(CHANNEL, {
-    name: 'Rappel du soir',
-    description: 'Rappelle de remplir la journée tant qu’elle ne l’est pas.',
+    name: 'Rappels du matin et du soir',
+    description: 'Rappelle de noter la nuit et de remplir la journée.',
     importance: Notifications.AndroidImportance.HIGH,
   });
 }
@@ -45,24 +55,36 @@ let running: Promise<void> | null = null;
  * et retire de l'écran les rappels d'une journée qui vient d'être remplie.
  * Appelée à chaque rechargement des données ; les appels simultanés sont regroupés.
  */
-export function syncReminders(data: Data, settings: ReminderSettings): Promise<void> {
+export function syncReminders(data: Data, settings: ReminderSettings, morning: MorningSettings): Promise<void> {
   const job = async () => {
     try {
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
       await Promise.all(
-        scheduled.filter((n) => n.identifier.startsWith(PREFIX)).map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+        scheduled
+          .filter((n) => n.identifier.startsWith(PREFIX) || n.identifier.startsWith(MORNING))
+          .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
       );
 
       // Rappels déjà affichés pour une journée maintenant remplie (ou rappels désactivés) : on les retire.
       const presented = await Notifications.getPresentedNotificationsAsync();
       for (const n of presented) {
         const day = n.request.content.data?.day as string | undefined;
-        if (!n.request.identifier.startsWith(PREFIX) || !day) continue;
-        if (!settings.enabled || isDayFilled(data, day, settings.criteria)) await Notifications.dismissNotificationAsync(n.request.identifier);
+        const id = n.request.identifier;
+        if (!day) continue;
+        if (id.startsWith(PREFIX) && (!settings.enabled || isDayFilled(data, day, settings.criteria))) await Notifications.dismissNotificationAsync(id);
+        if (id.startsWith(MORNING) && (!morning.enabled || isMorningDone(data, day, morning.criteria))) await Notifications.dismissNotificationAsync(id);
       }
 
-      if (!settings.enabled || !(await hasReminderPermission())) return;
+      if ((!settings.enabled && !morning.enabled) || !(await hasReminderPermission())) return;
       await ensureChannel();
+      for (const { day, at } of plannedMorning(data, morning, new Date())) {
+        const msg = morningMessage(data, day);
+        await Notifications.scheduleNotificationAsync({
+          identifier: `${MORNING}${day}`,
+          content: { title: msg.title, body: msg.body, data: { day }, sticky: morning.sticky, autoDismiss: !morning.sticky },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId: CHANNEL },
+        });
+      }
       for (const { day, at } of plannedReminders(data, settings, new Date())) {
         await Notifications.scheduleNotificationAsync({
           identifier: `${PREFIX}${day}-${at.getHours()}${String(at.getMinutes()).padStart(2, '0')}`,
