@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { AnalysisView } from '@/components/journal/analysis-view';
 import { Highlighted, TaggedText } from '@/components/journal/rich-text';
 import { Card, Chip, IconButton, Muted, Row, Screen } from '@/components/ui';
 import { MoodColors, MoodLabels, Radius, Spacing } from '@/constants/theme';
@@ -193,7 +194,7 @@ function SearchResults({ data, query }: { data: Data; query: string }) {
 export default function JournalScreen() {
   const c = useTheme();
   const { data, today } = useAppData();
-  const [mode, setMode] = useState<'liste' | 'calendrier'>('liste');
+  const [mode, setMode] = useState<'liste' | 'calendrier' | 'analyse'>('liste');
   const [query, setQuery] = useState('');
   const [month, setMonth] = useState(() => toKey(new Date()).slice(0, 7) + '-01');
 
@@ -228,12 +229,11 @@ export default function JournalScreen() {
           <Row>
             <Chip label="Liste" selected={mode === 'liste'} onPress={() => setMode('liste')} style={{ flex: 1 }} />
             <Chip label="Calendrier" selected={mode === 'calendrier'} onPress={() => setMode('calendrier')} style={{ flex: 1 }} />
+            <Chip label="Analyse" selected={mode === 'analyse'} onPress={() => setMode('analyse')} style={{ flex: 1 }} />
           </Row>
-          {mode === 'liste' ? (
-            <ListView data={data} today={today} onTag={(t) => setQuery(`#${t}`)} />
-          ) : (
-            <CalendarView data={data} today={today} month={month} setMonth={setMonth} />
-          )}
+          {mode === 'liste' ? <ListView data={data} today={today} onTag={(t) => setQuery(`#${t}`)} /> : null}
+          {mode === 'calendrier' ? <CalendarView data={data} today={today} month={month} setMonth={setMonth} /> : null}
+          {mode === 'analyse' ? <AnalysisView data={data} today={today} onTag={(t) => setQuery(`#${t}`)} /> : null}
         </>
       )}
     </Screen>

@@ -178,3 +178,22 @@ t("rappel du matin", () => {
   assert.deepEqual(L.parseMorningSettings({ morning_enabled: "1", morning_sticky: "0" }), { ...L.DEFAULT_MORNING, enabled: true, sticky: false });
 });
 console.log(`${passed} groupes au total (avec matin)`);
+
+t("pistes de l'analyse", () => {
+  const d = empty();
+  d.habits = [{ id: "m", name: "Méditation", perWeek: 7 }];
+  const today = "2026-11-23";
+  for (let i = 1; i <= 20; i++) {
+    const k = L.addDays(today, -i);
+    const bad = i % 4 === 0;
+    d.journal[k] = { date: k, mood: bad ? 0 : 4, energy: bad ? 0 : 3, text: bad ? "#sommeil" : "#famille" };
+    d.sleep[k] = { date: k, bed: bad ? "01:30" : "23:00", wake: "07:00", quality: null, awakenings: null };
+    if (!bad) d.checks[k] = ["m"];
+  }
+  const tips = L.insightTips(L.computeInsights(d, today)!, d);
+  assert.ok(tips.length >= 3 && tips.length <= 5);
+  assert.match(tips[0], /Méditation|nuit|dors/);
+  assert.ok(tips.some((t) => /5 h 30.*8 h/.test(t)));
+  assert.deepEqual(L.insightReadiness(d, today), { noted: 20, bad: 5, good: 15 });
+});
+console.log(`${passed} groupes au total (avec pistes)`);

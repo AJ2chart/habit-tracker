@@ -156,3 +156,57 @@ export function computeInsights(data: Data, today: DayKey, windowDays = 30): Ins
     goodTags,
   };
 }
+
+const WD_FULL = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const ENERGY_WORDS = ['vide', 'basse', 'moyenne', 'bonne', 'pleine'];
+const hm = (min: number) => {
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return m ? `${h} h ${String(m).padStart(2, '0')}` : `${h} h`;
+};
+
+/** Pistes concrètes tirées de l'analyse, de la plus marquante à la moins marquante (3 à 5). */
+export function insightTips(ins: Insights, data: Data): string[] {
+  const tips: { weight: number; text: string }[] = [];
+  const top = ins.habits[0];
+  if (top)
+    tips.push({
+      weight: top.good - top.bad,
+      text: `« ${top.name} » : faite ${top.bad} % des jours difficiles contre ${top.good} % des bons jours. La garder même les jours chargés, quitte à en faire une version courte.`,
+    });
+  if (ins.sleep) {
+    const gap = ins.sleep.goodMinutes - ins.sleep.badMinutes;
+    if (gap >= 30)
+      tips.push({
+        weight: gap,
+        text: `Avant tes jours difficiles, tu dors ${hm(ins.sleep.badMinutes)} en moyenne, contre ${hm(ins.sleep.goodMinutes)} avant les bons. Le sommeil est une piste prioritaire.`,
+      });
+    const s = ins.sleep.shortNightBadRate;
+    const n = ins.sleep.normalNightBadRate;
+    if (s != null && n != null && s - n >= 25)
+      tips.push({ weight: s - n, text: `Après une nuit de moins de 6 h 30, ${s} % de tes jours sont difficiles, contre ${n} % sinon.` });
+  }
+  if (ins.energy && ins.energy.good - ins.energy.bad >= 1)
+    tips.push({
+      weight: (ins.energy.good - ins.energy.bad) * 30,
+      text: `Tes jours difficiles sont d'abord des jours de fatigue (énergie ${ENERGY_WORDS[Math.round(ins.energy.bad)]} contre ${ENERGY_WORDS[Math.round(ins.energy.good)]}).`,
+    });
+  if (ins.hardestWeekday) {
+    const w = ins.hardestWeekday;
+    const ev = data.rules.filter((r) => r.type === 'custom' && !r.habitId && r.days.includes(w.weekday) && !r.until).map((r) => `« ${r.title} »`);
+    tips.push({
+      weight: (w.bad / w.total) * 60,
+      text: `Les ${WD_FULL[w.weekday]}s sont les plus durs (${w.bad} sur ${w.total}).${ev.length ? ` Ce jour-là il y a ${ev.join(', ')} : alléger ou décaler ce créneau ?` : ''}`,
+    });
+  }
+  if (ins.badTags[0]) tips.push({ weight: 20 + ins.badTags[0].count, text: `#${ins.badTags[0].tag} revient souvent les jours difficiles.` });
+  if (ins.goodTags[0]) tips.push({ weight: 15 + ins.goodTags[0].count, text: `#${ins.goodTags[0].tag} accompagne tes bons jours : à programmer plus souvent.` });
+  if (ins.slots) tips.push({ weight: ins.slots.good - ins.slots.bad, text: `Tu respectes ${ins.slots.bad} % de ton emploi du temps les jours difficiles, contre ${ins.slots.good} % les bons jours.` });
+  return tips.sort((a, b) => b.weight - a.weight).slice(0, 5).map((t) => t.text);
+}
+
+/** Pour l'écran « pas encore assez de données ». */
+export function insightReadiness(data: Data, today: DayKey, windowDays = 30) {
+  const days = Array.from({ length: windowDays }, (_, i) => addDays(today, -i - 1)).filter((k) => data.journal[k]?.mood != null);
+  return { noted: days.length, bad: days.filter((k) => isBadDay(data.journal[k])).length, good: days.filter((k) => isGoodDay(data.journal[k])).length };
+}
