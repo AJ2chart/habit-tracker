@@ -1,0 +1,39 @@
+# Publie une mise à jour à distance (EAS Update) vers l'appli installée
+# à chaque modification de la branche main.
+# Nécessite le secret EXPO_TOKEN (Settings → Secrets and variables → Actions).
+name: Mise à jour de l'appli
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier le code (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Tester la logique
+        run: npx --yes tsx tests/logic.test.ts
+
+      - name: Publier la mise à jour
+        env:
+          MESSAGE: ${{ github.event.head_commit.message || 'Mise à jour manuelle' }}
+        run: eas update --channel preview --environment preview --message "$MESSAGE" --non-interactive
