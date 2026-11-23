@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 
 import { Radius, Spacing } from '@/constants/theme';
@@ -26,7 +26,7 @@ export function shiftTime(value: string, minutes: number): string {
 
 function Column({ values, selected, onSelect, label }: { values: number[]; selected: number; onSelect: (v: number) => void; label: string }) {
   const c = useTheme();
-  const ref = useRef<ScrollView>(null);
+  const ref = useRef<ComponentRef<typeof ScrollView>>(null);
   const index = Math.max(0, values.indexOf(selected));
 
   const settle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
