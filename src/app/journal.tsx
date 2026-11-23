@@ -153,7 +153,6 @@ function CalendarView({ data, today, month, setMonth }: { data: Data; today: str
           <Muted>{bad > 1 ? 'jours difficiles' : 'jour difficile'}</Muted>
         </View>
       </Row>
-      <Muted style={{ textAlign: 'center' }}>Touche un jour pour retrouver son emploi du temps, ses habitudes et sa note.</Muted>
     </>
   );
 }

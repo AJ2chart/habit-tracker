@@ -7,7 +7,7 @@ import { HabitsCard } from '@/components/today/habits-card';
 import { JournalCard } from '@/components/today/journal-card';
 import { ScheduleCard } from '@/components/today/schedule-card';
 import { SleepCard } from '@/components/today/sleep-card';
-import { Body, Button, Card, IconButton, Muted, Screen } from '@/components/ui';
+import { Card, IconButton, Muted, Screen, TextButton } from '@/components/ui';
 import { MoodColors, Spacing } from '@/constants/theme';
 import {
   addHabit,
@@ -100,20 +100,22 @@ export default function TodayScreen() {
         subtitle={isToday ? longDate(day) : day < today ? 'Journée passée' : 'À venir'}
         left={<IconButton label="Jour précédent" glyph="‹" onPress={() => setPicked(addDays(day, -1))} />}
         right={<IconButton label="Jour suivant" glyph="›" onPress={() => setPicked(addDays(day, 1))} />}>
-        {!isToday ? <Button label="Revenir à aujourd'hui" variant="small" onPress={() => setPicked(null)} style={{ alignSelf: 'center' }} /> : null}
+        {!isToday ? (
+          <View style={{ alignItems: 'center' }}>
+            <TextButton label="Revenir à aujourd'hui" onPress={() => setPicked(null)} />
+          </View>
+        ) : null}
 
         {alerts.map((h) => (
-          <View key={h.id} style={[styles.alert, { backgroundColor: c.backgroundElement, borderColor: c.line, borderLeftColor: c.warn }]}>
-            <Body style={{ fontWeight: '600' }}>{`2 jours sans « ${h.name} »`}</Body>
-            <Muted>Une version courte aujourd'hui suffit à relancer la série avant qu'elle se perde.</Muted>
-            <Button label="C'est fait aujourd'hui" variant="small" onPress={() => run(() => setHabitChecked(db, today, h.id, true))} />
+          <View key={h.id} style={[styles.alert, { borderColor: c.line, borderLeftColor: c.warn }]}>
+            <Text style={[styles.alertText, { color: c.text }]} numberOfLines={2}>{`2 jours sans « ${h.name} »`}</Text>
+            <TextButton label="Fait" onPress={() => run(() => setHabitChecked(db, today, h.id, true))} accessibilityLabel={`${h.name} : fait aujourd'hui`} />
           </View>
         ))}
         {showReview ? (
-          <View style={[styles.alert, { backgroundColor: c.backgroundElement, borderColor: c.line, borderLeftColor: c.goal }]}>
-            <Body style={{ fontWeight: '600' }}>C'est dimanche : revue de la semaine</Body>
-            <Muted>Trois questions, trois minutes.</Muted>
-            <Button label="Faire ma revue" variant="small" onPress={() => router.navigate('/semaine')} />
+          <View style={[styles.alert, { borderColor: c.line, borderLeftColor: c.goal }]}>
+            <Text style={[styles.alertText, { color: c.text }]}>Dimanche : revue de la semaine</Text>
+            <TextButton label="Faire" onPress={() => router.navigate('/semaine')} accessibilityLabel="Faire la revue de la semaine" />
           </View>
         ) : null}
 
@@ -217,7 +219,8 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  alert: { borderWidth: 1, borderLeftWidth: 4, borderRadius: 12, padding: Spacing.three, gap: Spacing.one },
+  alert: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two, borderWidth: 1, borderLeftWidth: 3, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 10 },
+  alertText: { flex: 1, fontSize: 14, fontWeight: '500' },
   lastYear: { flexDirection: 'row', gap: Spacing.two, alignItems: 'flex-start' },
   dot: { width: 10, height: 10, borderRadius: 5, marginTop: 6 },
 });

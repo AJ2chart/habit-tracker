@@ -6,6 +6,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BackupCard } from '@/components/settings/backup-card';
 import { MorningCard } from '@/components/settings/morning-card';
 import { ReminderCard } from '@/components/settings/reminder-card';
+import { RulesCard } from '@/components/settings/rules-card';
+import { stopRule } from '@/db/actions';
 import { loadSettings, saveSettings } from '@/db/settings';
 import {
   DEFAULT_MORNING,
@@ -31,7 +33,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function SettingsScreen() {
-  const { db, data, reload } = useAppData();
+  const { db, data, today, reload } = useAppData();
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [reminder, setReminder] = useState<ReminderSettings>(DEFAULT_REMINDER);
   const [morning, setMorning] = useState<MorningSettings>(DEFAULT_MORNING);
@@ -73,22 +75,26 @@ export default function SettingsScreen() {
   };
 
   return (
-    <Screen title="Réglages" subtitle="Sauvegarde, confidentialité, appli">
+    <Screen title="Réglages">
       <MorningCard settings={morning} onChange={(m) => void changeMorning(m)} />
 
       <ReminderCard settings={reminder} onChange={(r) => void changeReminder(r)} />
 
       <BackupCard db={db} lastBackup={lastBackup} onDone={() => void reload()} />
 
+      {data ? (
+        <RulesCard
+          rules={data.rules.filter((r) => !r.until || r.until >= today).sort((a, b) => a.start.localeCompare(b.start))}
+          onStop={(id) => void stopRule(db, id, today).then(reload)}
+        />
+      ) : null}
+
       <Card title="Confidentialité">
-        <Muted>
-          Tes données restent sur ce téléphone, dans une base chiffrée dont la clé est gardée par le stockage sécurisé du système. Rien
-          n’est envoyé sur Internet : les mises à jour de l’appli arrivent, tes données ne partent pas.
-        </Muted>
+        <Muted>Tes données restent sur ce téléphone, chiffrées. Rien n’est envoyé sur Internet.</Muted>
       </Card>
 
       <Card title="Compte">
-        <Muted>Bientôt : un compte pour synchroniser tes données entre appareils et les consulter sur le web, chiffrées de bout en bout.</Muted>
+        <Muted>Bientôt : synchronisation chiffrée et consultation sur le web.</Muted>
       </Card>
 
       <Card title="À propos">

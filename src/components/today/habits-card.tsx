@@ -1,10 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, Muted } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
+import { Card, Muted, TextButton } from '@/components/ui';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isChecked, streak, type Data } from '@/logic';
 
+/** Habitudes du jour en pastilles : un toucher coche ou décoche. */
 export function HabitsCard({
   data,
   day,
@@ -25,9 +26,11 @@ export function HabitsCard({
   const count = habits.filter((h) => isChecked(data, day, h.id)).length;
 
   return (
-    <Card title="Habitudes" right={<Muted>{`${count}/${habits.length}`}</Muted>}>
-      {habits.length === 0 ? <Muted>Aucune habitude pour l'instant. Ajoute la première pour commencer le suivi.</Muted> : null}
-      <View style={styles.grid}>
+    <Card
+      title={habits.length ? `Habitudes · ${count}/${habits.length}` : 'Habitudes'}
+      right={habits.length ? <TextButton label="Gérer" onPress={onManage} accessibilityLabel="Gérer les habitudes" /> : undefined}>
+      {habits.length === 0 ? <Muted>Ajoute ta première habitude pour commencer le suivi.</Muted> : null}
+      <View style={styles.wrap}>
         {habits.map((h) => {
           const on = isChecked(data, day, h.id);
           const st = day === today ? streak(data, h.id, today) : 0;
@@ -37,31 +40,29 @@ export function HabitsCard({
               onPress={() => onToggle(h.id, !on)}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: on }}
+              accessibilityLabel={`${h.name}${st ? `, série de ${st} jours` : ''}`}
               style={({ pressed }) => [
-                styles.habit,
-                { borderColor: on ? c.accent : c.line, backgroundColor: on ? c.backgroundSelected : 'transparent' },
+                styles.pill,
+                { borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accent : 'transparent' },
                 pressed && { opacity: 0.7 },
               ]}>
-              <Text style={[styles.name, { color: c.text }]}>{h.name}</Text>
-              <Text style={[styles.sub, { color: c.textSecondary }]}>
-                {`${h.perWeek}×/sem${st ? ` · série de ${st} j` : ''}`}
-              </Text>
+              <Text style={[styles.name, { color: on ? c.onAccent : c.text }]}>{on ? `✓ ${h.name}` : h.name}</Text>
+              {st > 1 ? <Text style={[styles.streak, { color: on ? c.onAccent : c.textSecondary }]}>{`${st} j`}</Text> : null}
             </Pressable>
           );
         })}
-      </View>
-      <View style={styles.actions}>
-        <Button label="+ Nouvelle habitude" variant="small" onPress={onAdd} />
-        {habits.length ? <Button label="Gérer" variant="small" onPress={onManage} /> : null}
+        <Pressable onPress={onAdd} accessibilityRole="button" accessibilityLabel="Nouvelle habitude" style={({ pressed }) => [styles.pill, styles.add, { borderColor: c.line }, pressed && { opacity: 0.6 }]}>
+          <Text style={[styles.name, { color: c.textSecondary }]}>+ Habitude</Text>
+        </Pressable>
       </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  actions: { flexDirection: 'row', gap: Spacing.two },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  habit: { flexBasis: '47%', flexGrow: 1, borderWidth: 1, borderRadius: Radius.control + 2, padding: 10, gap: 3 },
-  name: { fontSize: 14, fontWeight: '600' },
-  sub: { fontSize: 12 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
+  add: { borderStyle: 'dashed' },
+  name: { fontSize: 14, fontWeight: '500' },
+  streak: { fontSize: 12, opacity: 0.8 },
 });

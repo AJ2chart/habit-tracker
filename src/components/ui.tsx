@@ -156,6 +156,16 @@ export function Button({
   );
 }
 
+/** Action discrète en texte, pour l'en-tête d'une carte (« + Ajouter », « Gérer »). */
+export function TextButton({ label, onPress, accessibilityLabel }: { label: string; onPress: () => void; accessibilityLabel?: string }) {
+  const c = useTheme();
+  return (
+    <Pressable onPress={onPress} hitSlop={10} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} style={({ pressed }) => pressed && { opacity: 0.5 }}>
+      <Text style={{ color: c.goal, fontSize: 14, fontWeight: '600' }}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /** Bouton icône carré (flèches de navigation). */
 export function IconButton({ label, glyph, onPress }: { label: string; glyph: string; onPress: () => void }) {
   const c = useTheme();
@@ -291,20 +301,20 @@ const styles = StyleSheet.create({
     paddingBottom: BottomTabInset + Spacing.four,
     gap: Spacing.three,
   },
-  header: { paddingTop: Spacing.three, gap: Spacing.half },
+  header: { paddingTop: Spacing.two, gap: Spacing.half },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.3 },
-  subtitle: { fontSize: 14 },
-  card: { borderWidth: 1, borderRadius: Radius.card, padding: Spacing.three, gap: Spacing.two },
+  title: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3 },
+  subtitle: { fontSize: 13 },
+  card: { borderWidth: 1, borderRadius: Radius.card, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
-  cardTitle: { fontSize: 17, fontWeight: '600' },
+  cardTitle: { fontSize: 16, fontWeight: '600' },
   muted: { fontSize: 13, lineHeight: 18 },
   body: { fontSize: 15, lineHeight: 21 },
   btn: { borderRadius: Radius.control, paddingVertical: 11, paddingHorizontal: Spacing.three, alignItems: 'center' },
   btnSmall: { borderRadius: Radius.chip, paddingVertical: 5, paddingHorizontal: 10, alignSelf: 'flex-start' },
   btnText: { fontSize: 15, fontWeight: '600' },
   btnTextSmall: { fontSize: 13, fontWeight: '500' },
-  iconBtn: { width: 38, height: 38, borderRadius: Radius.control, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 34, height: 34, borderRadius: Radius.control, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   iconGlyph: { fontSize: 20, lineHeight: 22 },
   chip: { borderWidth: 1, borderRadius: Radius.control, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', gap: 4 },
   chipText: { fontSize: 12, textAlign: 'center' },

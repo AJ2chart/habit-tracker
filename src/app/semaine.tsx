@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, IconButton, Muted, Row, Screen } from '@/components/ui';
+import { Card, IconButton, Muted, Row, Screen, TextButton } from '@/components/ui';
 import { ReviewCard } from '@/components/week/review-card';
 import { Spacing } from '@/constants/theme';
-import { saveReview, setHabitChecked, stopRule } from '@/db/actions';
+import { saveReview, setHabitChecked } from '@/db/actions';
 import { newId } from '@/db/repo';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,7 +23,6 @@ import {
   missingOccurrences,
   mondayOf,
   range,
-  ruleLabel,
   type Data,
   type Slot,
 } from '@/logic';
@@ -51,7 +50,6 @@ export default function WeekScreen() {
   const c = useTheme();
   const { db, data, today, reload } = useAppData();
   const [picked, setPicked] = useState<string | null>(null);
-  const [confirmStop, setConfirmStop] = useState<string | null>(null);
 
   const monday = picked ?? mondayOf(today);
   const days = range(monday, addDays(monday, 6));
@@ -78,7 +76,6 @@ export default function WeekScreen() {
   const weeklyGoals = data.goals.filter((g) => g.level === 'hebdo' && isActiveAt(g, monday));
   const nights = days.map((d) => data.sleep[d] ?? null);
   const sleepAvg = averageSleep(nights);
-  const rules = data.rules.filter((r) => !r.until || r.until >= today).sort((a, b) => a.start.localeCompare(b.start));
 
   return (
     <Screen
@@ -86,7 +83,11 @@ export default function WeekScreen() {
       subtitle={`${short(monday)} – ${short(days[6])}`}
       left={<IconButton label="Semaine précédente" glyph="‹" onPress={() => setPicked(addDays(monday, -7))} />}
       right={<IconButton label="Semaine suivante" glyph="›" onPress={() => setPicked(addDays(monday, 7))} />}>
-      {!isCurrent ? <Button label="Revenir à cette semaine" variant="small" onPress={() => setPicked(null)} style={{ alignSelf: 'center' }} /> : null}
+      {!isCurrent ? (
+        <View style={{ alignItems: 'center' }}>
+          <TextButton label="Revenir à cette semaine" onPress={() => setPicked(null)} />
+        </View>
+      ) : null}
 
       <Row style={{ alignItems: 'stretch' }}>
         <Stat value={totalSlots ? `${Math.round((doneSlots / totalSlots) * 100)} %` : '—'} label="créneaux faits" />
@@ -121,14 +122,13 @@ export default function WeekScreen() {
               {[
                 `${sleepAvg.nights} nuit${sleepAvg.nights > 1 ? 's' : ''} notée${sleepAvg.nights > 1 ? 's' : ''}`,
                 sleepAvg.spread != null ? `coucher ${sleepAvg.spread <= 30 ? 'régulier' : sleepAvg.spread <= 60 ? 'assez variable' : 'très variable'} (± ${sleepAvg.spread} min)` : '',
-                'en rouge : moins de 6 h 30',
               ]
                 .filter(Boolean)
                 .join(' · ')}
             </Muted>
           </>
         ) : (
-          <Muted>Aucune nuit notée cette semaine. Renseigne-la chaque matin dans l'onglet Aujourd'hui.</Muted>
+          <Muted>Aucune nuit notée cette semaine.</Muted>
         )}
       </Card>
 
@@ -181,7 +181,6 @@ export default function WeekScreen() {
             </View>
           );
         })}
-        {habits.length ? <Muted>Touche une case pour cocher ou décocher un jour passé.</Muted> : null}
       </Card>
 
       <Card title="Prévu ↔ fait">
@@ -199,31 +198,31 @@ export default function WeekScreen() {
             );
           })}
         </View>
-        <Muted>Part des créneaux de l'emploi du temps réellement faits, jour par jour.</Muted>
       </Card>
 
+      {weeklyGoals.length ? (
       <Card title="Objectifs de la semaine">
-        {weeklyGoals.length === 0 ? <Muted>Aucun objectif hebdomadaire. Crée-en un dans l'onglet Objectifs.</Muted> : null}
-        {weeklyGoals.map((g) => {
-          const p = goalProgress(data, g, monday);
-          const ch = challengeStep(g, monday);
-          const habit = g.habitId ? data.habits.find((h) => h.id === g.habitId) : undefined;
-          return (
-            <View key={g.id} style={styles.goal}>
-              <View style={styles.goalTop}>
-                <Text style={[styles.goalTitle, { color: c.text }]}>{g.title}</Text>
-                <Text style={[styles.goalNums, { color: c.textSecondary }]}>{`${p.current}/${p.target}`}</Text>
+          {weeklyGoals.map((g) => {
+            const p = goalProgress(data, g, monday);
+            const ch = challengeStep(g, monday);
+            const habit = g.habitId ? data.habits.find((h) => h.id === g.habitId) : undefined;
+            return (
+              <View key={g.id} style={styles.goal}>
+                <View style={styles.goalTop}>
+                  <Text style={[styles.goalTitle, { color: c.text }]}>{g.title}</Text>
+                  <Text style={[styles.goalNums, { color: c.textSecondary }]}>{`${p.current}/${p.target}`}</Text>
+                </View>
+                <View style={[styles.progress, { backgroundColor: c.goalSoft }]}>
+                  <View style={{ width: `${p.percent}%` as `${number}%`, height: '100%', backgroundColor: c.goal, borderRadius: 4 }} />
+                </View>
+                <Muted>
+                  {[habit ? `Suivi via « ${habit.name} »` : '', ch ? `challenge ${PERIOD_UNIT.hebdo[0]} ${ch.index}/${ch.total}` : ''].filter(Boolean).join(' · ')}
+                </Muted>
               </View>
-              <View style={[styles.progress, { backgroundColor: c.goalSoft }]}>
-                <View style={{ width: `${p.percent}%` as `${number}%`, height: '100%', backgroundColor: c.goal, borderRadius: 4 }} />
-              </View>
-              <Muted>
-                {[habit ? `Suivi via « ${habit.name} »` : '', ch ? `challenge ${PERIOD_UNIT.hebdo[0]} ${ch.index}/${ch.total}` : ''].filter(Boolean).join(' · ')}
-              </Muted>
-            </View>
-          );
-        })}
-      </Card>
+            );
+          })}
+        </Card>
+      ) : null}
 
       <ReviewCard
         weekStart={monday}
@@ -233,30 +232,6 @@ export default function WeekScreen() {
         onSave={(f) => run(() => saveReview(db, monday, f))}
       />
 
-      <Card title="Tâches répétées" right={<Muted>{String(rules.length)}</Muted>}>
-        {rules.length === 0 ? <Muted>Aucune tâche répétée.</Muted> : null}
-        {rules.map((r, i) => (
-          <View key={r.id} style={[styles.rule, i > 0 && { borderTopColor: c.line, borderTopWidth: StyleSheet.hairlineWidth }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.goalTitle, { color: c.text }]}>{r.title}</Text>
-              <Muted>{`↻ ${ruleLabel(r)} · ${r.start}–${r.end}`}</Muted>
-            </View>
-            <Button
-              label={confirmStop === r.id ? 'Confirmer' : 'Arrêter'}
-              variant="small"
-              onPress={() =>
-                confirmStop === r.id
-                  ? run(async () => {
-                      await stopRule(db, r.id, today);
-                      setConfirmStop(null);
-                    })
-                  : setConfirmStop(r.id)
-              }
-            />
-          </View>
-        ))}
-        {rules.length ? <Muted>« Arrêter » retire les prochaines occurrences non faites ; l'historique reste.</Muted> : null}
-      </Card>
     </Screen>
   );
 }

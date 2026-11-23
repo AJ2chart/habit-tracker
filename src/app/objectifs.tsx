@@ -88,15 +88,10 @@ export default function GoalsScreen() {
 
   return (
     <>
-      <Screen title="Objectifs" subtitle="De l'année à la semaine : chaque niveau alimente le suivant">
-        <Button label="+ Nouvel objectif" onPress={() => setSheet({})} />
+      <Screen title="Objectifs" subtitle="Année · mois · semaine">
+        <Button label="+ Nouvel objectif" variant="ghost" onPress={() => setSheet({})} />
         {roots.length === 0 ? (
-          <Card title="Aucun objectif pour l'instant">
-            <Muted>
-              Commence par un objectif annuel, puis découpe-le en objectifs mensuels et hebdomadaires. Ceux qui sont liés à une habitude se
-              mettent à jour quand tu coches.
-            </Muted>
-          </Card>
+          <Muted style={{ textAlign: 'center' }}>Commence par un objectif annuel, puis découpe-le en mois et en semaines.</Muted>
         ) : null}
         {roots.map((g) => (
           <Card key={g.id}>
@@ -118,7 +113,6 @@ export default function GoalsScreen() {
             ) : null}
           </Card>
         ))}
-        {roots.length ? <Muted style={{ textAlign: 'center' }}>Touche un objectif pour le modifier ou l'archiver.</Muted> : null}
       </Screen>
 
       <GoalSheet

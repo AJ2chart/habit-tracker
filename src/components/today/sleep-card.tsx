@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DotScale } from '@/components/dot-scale';
 import { TimeRange } from '@/components/time-wheel';
-import { Button, Card, Chip, Muted, Row } from '@/components/ui';
+import { Button, Card, Chip, Row, TextButton } from '@/components/ui';
 import { MoodColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { addDays, formatDuration, fromKey, sleepMinutes, type SleepEntry } from '@/logic';
+import { formatDuration, sleepMinutes, type SleepEntry } from '@/logic';
 
 export const SleepQualityLabels = ['Très mauvaise', 'Mauvaise', 'Moyenne', 'Bonne', 'Excellente'] as const;
-const AWAKENINGS = [0, 1, 2, 3];
 
 type Draft = { bed: string; wake: string; quality: number | null; awakenings: number | null };
 
 /**
- * Nuit rattachée au jour du réveil. Affichée en résumé une fois saisie ;
- * toucher le résumé permet de la modifier.
+ * Nuit rattachée au jour du réveil. Une ligne de résumé une fois saisie
+ * (toucher pour modifier), sinon un formulaire court aux heures pré-remplies.
  */
 export function SleepCard({
   day,
@@ -50,61 +50,39 @@ export function SleepCard({
 
   const duration = sleepMinutes(bed, wake);
   const plausible = duration >= 60 && duration <= 16 * 60;
-
-  const short = (k: string) => fromKey(k).toLocaleDateString('fr-FR', { weekday: 'long' });
-  const title = isToday ? 'Nuit dernière' : `Nuit du ${short(addDays(day, -1))} au ${short(day)}`;
+  const title = isToday ? 'Nuit dernière' : 'Nuit';
 
   if (entry && !editing) {
-    const d = sleepMinutes(entry.bed, entry.wake);
     return (
-      <Card title={title} right={<Button label="Modifier" variant="small" onPress={() => setEditing(true)} />}>
-        <Pressable onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel="Modifier la nuit" style={styles.summary}>
-          <Text style={[styles.big, { color: c.text }]}>{formatDuration(d)}</Text>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[styles.meta, { color: c.text }]}>{`${entry.bed} → ${entry.wake}`}</Text>
-            <View style={styles.qualityRow}>
-              {entry.quality != null ? <View style={[styles.dot, { backgroundColor: MoodColors[entry.quality] }]} /> : null}
-              <Muted>
-                {[
-                  entry.quality != null ? `Sommeil ${SleepQualityLabels[entry.quality].toLowerCase()}` : '',
-                  entry.awakenings != null ? `${entry.awakenings >= 3 ? '3 réveils ou plus' : `${entry.awakenings} réveil${entry.awakenings > 1 ? 's' : ''}`}` : '',
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Muted>
-            </View>
+      <Pressable onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel="Modifier la nuit">
+        <Card>
+          <View style={styles.summary}>
+            <Text style={[styles.label, { color: c.textSecondary }]}>{title}</Text>
+            <Text style={[styles.big, { color: c.text }]}>{formatDuration(sleepMinutes(entry.bed, entry.wake))}</Text>
+            <Text style={[styles.times, { color: c.textSecondary }]}>{`${entry.bed} → ${entry.wake}`}</Text>
+            <View style={{ flex: 1 }} />
+            {entry.quality != null ? <View style={[styles.dot, { backgroundColor: MoodColors[entry.quality] }]} /> : null}
           </View>
-        </Pressable>
-      </Card>
+        </Card>
+      </Pressable>
     );
   }
 
   return (
-    <Card title={title} right={plausible ? <Muted>{formatDuration(duration)}</Muted> : undefined}>
+    <Card title={title} right={plausible ? <Text style={{ color: c.text, fontWeight: '600' }}>{formatDuration(duration)}</Text> : undefined}>
       <TimeRange startLabel="Coucher" endLabel="Lever" start={bed} end={wake} onStart={setBed} onEnd={setWake} />
-      {!entry && previous ? <Muted>Heures de ta dernière nuit notée. Maintiens une heure et glisse pour la changer.</Muted> : null}
       {!plausible ? <Text style={{ color: c.warn, fontSize: 13 }}>Durée inhabituelle : vérifie les heures.</Text> : null}
-
-      <Muted>Qualité ressentie</Muted>
+      <DotScale title="Qualité" labels={SleepQualityLabels} colors={MoodColors} value={quality} onChange={setQuality} />
       <Row>
-        {SleepQualityLabels.map((l, i) => (
-          <Chip key={l} label={l} selected={quality === i} onPress={() => setQuality(quality === i ? null : i)} style={styles.flex}>
-            <View style={[styles.dot, { backgroundColor: MoodColors[i] }]} />
-          </Chip>
+        <Text style={[styles.label, { color: c.textSecondary, flex: 1 }]}>Réveils</Text>
+        {[0, 1, 2, 3].map((n) => (
+          <Chip key={n} label={n === 3 ? '3+' : String(n)} selected={awakenings === n} onPress={() => setAwakenings(awakenings === n ? null : n)} style={styles.small} />
         ))}
       </Row>
-
-      <Muted>Réveils dans la nuit (facultatif)</Muted>
-      <Row>
-        {AWAKENINGS.map((n) => (
-          <Chip key={n} label={n === 3 ? '3 et +' : String(n)} selected={awakenings === n} onPress={() => setAwakenings(awakenings === n ? null : n)} style={styles.flex} />
-        ))}
-      </Row>
-
-      <Row style={{ justifyContent: entry ? 'space-between' : 'flex-end' }}>
-        {entry ? <Button label="Effacer" variant="ghost" onPress={onDelete} /> : null}
-        <Row>
-          {entry ? <Button label="Annuler" variant="ghost" onPress={() => setEditing(false)} /> : null}
+      <Row style={{ justifyContent: 'space-between' }}>
+        {entry ? <TextButton label="Effacer" onPress={onDelete} /> : <View />}
+        <Row style={{ gap: Spacing.three }}>
+          {entry ? <TextButton label="Annuler" onPress={() => setEditing(false)} /> : null}
           <Button
             label="Enregistrer"
             disabled={!plausible}
@@ -112,6 +90,7 @@ export function SleepCard({
               onSave({ bed, wake, quality, awakenings });
               setEditing(false);
             }}
+            style={{ paddingVertical: 9 }}
           />
         </Row>
       </Row>
@@ -120,10 +99,10 @@ export function SleepCard({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  summary: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  big: { fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
-  meta: { fontSize: 15, fontVariant: ['tabular-nums'] },
-  qualityRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
+  summary: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two + 2 },
+  label: { fontSize: 13 },
+  big: { fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  times: { fontSize: 14, fontVariant: ['tabular-nums'] },
+  dot: { width: 12, height: 12, borderRadius: 6, alignSelf: 'center' },
+  small: { width: 44, paddingVertical: 6 },
 });

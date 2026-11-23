@@ -31,10 +31,7 @@ export function ReminderCard({ settings, onChange }: { settings: ReminderSetting
 
   return (
     <Card title="Rappel du soir">
-      <Muted>
-        Une notification à l’heure choisie tant que la journée n’est pas remplie. Sur Android, elle ne peut pas être balayée et disparaît
-        d’elle-même une fois la journée remplie.
-      </Muted>
+      <Muted>Tant que la journée n’est pas remplie.</Muted>
       <Row>
         <Chip label="Désactivé" selected={!settings.enabled} onPress={() => onChange({ ...settings, enabled: false })} style={{ flex: 1 }} />
         <Chip label="Activé" selected={settings.enabled} onPress={() => void enable()} style={{ flex: 1 }} />

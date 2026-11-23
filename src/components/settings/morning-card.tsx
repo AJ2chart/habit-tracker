@@ -25,10 +25,7 @@ export function MorningCard({ settings, onChange }: { settings: MorningSettings;
 
   return (
     <Card title="Rappel du matin">
-      <Muted>
-        Pour bien démarrer : noter ta nuit en quelques secondes et voir l’emploi du temps du jour. Le rappel ne part pas si c’est déjà fait,
-        et disparaît dès que ça l’est.
-      </Muted>
+      <Muted>Noter ta nuit et voir ta journée, chaque matin.</Muted>
       <Row>
         <Chip label="Désactivé" selected={!settings.enabled} onPress={() => onChange({ ...settings, enabled: false })} style={{ flex: 1 }} />
         <Chip label="Activé" selected={settings.enabled} onPress={() => void enable()} style={{ flex: 1 }} />
