@@ -88,7 +88,7 @@ export function SleepCard({
       <Muted>Qualité ressentie</Muted>
       <Row>
         {SleepQualityLabels.map((l, i) => (
-          <Chip key={l} label={l.replace('Très mauvaise', 'Très mauv.')} selected={quality === i} onPress={() => setQuality(quality === i ? null : i)} style={styles.flex}>
+          <Chip key={l} label={l} selected={quality === i} onPress={() => setQuality(quality === i ? null : i)} style={styles.flex}>
             <View style={[styles.dot, { backgroundColor: MoodColors[i] }]} />
           </Chip>
         ))}

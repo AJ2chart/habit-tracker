@@ -198,7 +198,14 @@ export function Chip({
         style,
       ]}>
       {children}
-      <Text style={[styles.chipText, { color: c.text, fontWeight: selected ? '600' : '400' }]}>{label}</Text>
+      {/* Plusieurs mots : deux lignes centrées, coupées entre les mots. Un seul mot : réduit s'il ne tient pas. */}
+      <Text
+        style={[styles.chipText, { color: c.text, fontWeight: selected ? '600' : '400' }]}
+        numberOfLines={label.includes(' ') ? 2 : 1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -299,8 +306,8 @@ const styles = StyleSheet.create({
   btnTextSmall: { fontSize: 13, fontWeight: '500' },
   iconBtn: { width: 38, height: 38, borderRadius: Radius.control, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   iconGlyph: { fontSize: 20, lineHeight: 22 },
-  chip: { borderWidth: 1, borderRadius: Radius.control, paddingVertical: 8, paddingHorizontal: 6, alignItems: 'center', gap: 4 },
-  chipText: { fontSize: 12 },
+  chip: { borderWidth: 1, borderRadius: Radius.control, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  chipText: { fontSize: 12, textAlign: 'center' },
   field: { gap: 4 },
   fieldLabel: { fontSize: 13 },
   secureWrap: { justifyContent: 'center' },
