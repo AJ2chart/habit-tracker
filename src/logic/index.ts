@@ -8,3 +8,4 @@ export * from "./insights";
 export * from "./time";
 export * from "./sleep";
 export * from "./reminders";
+export * from "./challenge";

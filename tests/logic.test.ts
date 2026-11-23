@@ -197,3 +197,32 @@ t("pistes de l'analyse", () => {
   assert.deepEqual(L.insightReadiness(d, today), { noted: 20, bad: 5, good: 15 });
 });
 console.log(`${passed} groupes au total (avec pistes)`);
+
+t("bilan de challenge", () => {
+  const d = empty();
+  d.habits = [{ id: "m", name: "Méditation", perWeek: 5 }];
+  // Challenge de 4 semaines (lun 2026-10-26 → dim 2026-11-22), cible 5/semaine.
+  const g = { id: "c", level: "hebdo" as const, parentId: null, title: "Méditer 5 fois", kind: "habit" as const, habitId: "m", target: 5, periodStart: "2026-10-26", endDate: "2026-11-22" };
+  for (const k of L.range("2026-10-26", "2026-11-22")) {
+    const wd = L.weekday(k);
+    const week = Math.floor(L.range("2026-10-26", k).length / 7.0001);
+    const skip = wd === 1 || (week >= 2 && wd >= 4); // lundis manqués, essoufflement en fin
+    if (!skip) d.checks[k] = ["m"];
+    d.journal[k] = { date: k, mood: skip ? 1 : 3, energy: skip ? 0 : 3, text: skip ? "#réunions" : "" };
+  }
+  const r = L.challengeReview(d, g, "2026-11-23")!;
+  assert.equal(r.total, 4);
+  assert.equal(r.succeeded, 2);
+  assert.equal(r.rate, 50);
+  assert.equal(r.trend, "essoufflement");
+  assert.equal(r.worstWeekday?.weekday, 1);
+  assert.deepEqual(r.missedVsDone!.badShare, [100, 0]);
+  assert.equal(r.missedTags[0].tag, "réunions");
+  assert.ok(r.suggestions.some((s) => s.action?.type === "slot"));
+  assert.ok(r.suggestions.some((s) => s.action?.type === "restart"));
+  assert.ok(L.isChallengeEnded(g, "2026-11-23"));
+  const ng = L.goalFromAction(g, { type: "unlimited", target: 5 }, "2026-11-23");
+  assert.equal(ng.endDate, null);
+  assert.equal(ng.periodStart, "2026-11-23");
+});
+console.log(`${passed} groupes au total (avec bilan)`);

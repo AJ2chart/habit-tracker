@@ -28,7 +28,8 @@ import {
 } from '@/db/actions';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { addDays, brokenStreaks, fromKey, mondayOf, sameDayLastYear, type RecurringRule, type Slot } from '@/logic';
+import { addDays, brokenStreaks, fromKey, isChallengeEnded, mondayOf, sameDayLastYear, type RecurringRule, type Slot } from '@/logic';
+import { loadSettings } from '@/db/settings';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const longDate = (k: string) => fromKey(k).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -42,6 +43,10 @@ export default function TodayScreen() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  useEffect(() => {
+    void loadSettings(db).then(setSettings);
+  }, [db, data]);
 
   // Jour demandé depuis un autre onglet (Journal) : ?day=YYYY-MM-DD, t = horodatage pour rouvrir le même jour.
   const params = useLocalSearchParams<{ day?: string; t?: string }>();
@@ -88,6 +93,10 @@ export default function TodayScreen() {
     });
 
   const alerts = isToday ? brokenStreaks(data, today) : [];
+  // Challenge terminé depuis moins de 14 jours, dont le bilan n'a pas encore été ouvert.
+  const endedChallenges = isToday
+    ? data.goals.filter((g) => isChallengeEnded(g, today) && g.endDate! >= addDays(today, -14) && !settings[`challenge_${g.id}`])
+    : [];
   const showReview = isToday && fromKey(today).getDay() === 0 && !data.reviews[mondayOf(today)]?.change;
 
   const lyKey = sameDayLastYear(day);
@@ -110,6 +119,16 @@ export default function TodayScreen() {
           <View key={h.id} style={[styles.alert, { borderColor: c.line, borderLeftColor: c.warn }]}>
             <Text style={[styles.alertText, { color: c.text }]} numberOfLines={2}>{`2 jours sans « ${h.name} »`}</Text>
             <TextButton label="Fait" onPress={() => run(() => setHabitChecked(db, today, h.id, true))} accessibilityLabel={`${h.name} : fait aujourd'hui`} />
+          </View>
+        ))}
+        {endedChallenges.map((g) => (
+          <View key={g.id} style={[styles.alert, { borderColor: c.line, borderLeftColor: c.goal }]}>
+            <Text style={[styles.alertText, { color: c.text }]} numberOfLines={2}>{`Challenge « ${g.title} » terminé`}</Text>
+            <TextButton
+              label="Bilan"
+              onPress={() => router.navigate({ pathname: '/objectifs', params: { review: g.id, t: String(Date.now()) } })}
+              accessibilityLabel={`Voir le bilan du challenge ${g.title}`}
+            />
           </View>
         ))}
         {showReview ? (

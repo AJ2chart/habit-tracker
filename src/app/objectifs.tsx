@@ -1,13 +1,30 @@
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ChallengeSheet, type Reflection } from '@/components/goals/challenge-sheet';
 import { GoalSheet } from '@/components/goals/goal-sheet';
-import { Button, Card, Muted, Screen } from '@/components/ui';
+import { shiftTime } from '@/components/time-wheel';
+import { Button, Card, Muted, Screen, TextButton } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
-import { addGoal, archiveGoal, incrementGoal, updateGoal } from '@/db/actions';
+import { addGoal, addRule, archiveGoal, incrementGoal, updateGoal } from '@/db/actions';
+import { loadSettings, saveSettings } from '@/db/settings';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { LEVEL_LABELS, PERIOD_UNIT, challengeStep, goalProgress, isActiveAt, type Data, type Goal, type Level } from '@/logic';
+import {
+  LEVEL_LABELS,
+  PERIOD_UNIT,
+  challengeReview,
+  challengeStep,
+  goalFromAction,
+  goalProgress,
+  isActiveAt,
+  isChallengeEnded,
+  type ChallengeAction,
+  type Data,
+  type Goal,
+  type Level,
+} from '@/logic';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','));
 
@@ -69,8 +86,20 @@ function GoalRow({
 }
 
 export default function GoalsScreen() {
+  const c = useTheme();
   const { db, data, today, reload } = useAppData();
   const [sheet, setSheet] = useState<{ goal?: Goal; level?: Level; parentId?: string | null } | null>(null);
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
+
+  // ?review=<id> : ouvert depuis l'alerte de fin de challenge d'Aujourd'hui.
+  const params = useLocalSearchParams<{ review?: string; t?: string }>();
+  useEffect(() => {
+    if (params.review) setReviewId(params.review);
+  }, [params.review, params.t]);
+  useEffect(() => {
+    void loadSettings(db).then(setSettings);
+  }, [db, data]);
 
   if (!data) return <Screen title="Objectifs" subtitle="Chargement…" />;
 
@@ -85,6 +114,28 @@ export default function GoalsScreen() {
   const roots = active.filter((g) => !g.parentId || !activeIds.has(g.parentId));
   const order: Record<Level, number> = { annuel: 0, mensuel: 1, hebdo: 2 };
   roots.sort((a, b) => order[a.level] - order[b.level]);
+
+  const ended = data.goals.filter((g) => isChallengeEnded(g, today)).sort((a, b) => b.endDate!.localeCompare(a.endDate!));
+  const reviewGoal = reviewId ? data.goals.find((g) => g.id === reviewId) : undefined;
+  const review = reviewGoal ? challengeReview(data, reviewGoal, today) : null;
+  const reflectionKey = (id: string) => `challenge_${id}`;
+  const readReflection = (id: string): Reflection | null => {
+    try {
+      return settings[reflectionKey(id)] ? (JSON.parse(settings[reflectionKey(id)]) as Reflection) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const applyAction = (goal: Goal, a: ChallengeAction) =>
+    run(async () => {
+      if (a.type === 'slot') {
+        const habit = data.habits.find((h) => h.id === goal.habitId);
+        const existing = data.rules.find((r) => r.habitId === goal.habitId);
+        const start = existing?.start ?? '08:00';
+        await addRule(db, { title: habit?.name ?? goal.title, start, end: existing?.end ?? shiftTime(start, 30), habitId: goal.habitId ?? null, type: 'custom', days: [a.weekday], from: today });
+      } else await addGoal(db, goalFromAction(goal, a, today));
+    });
 
   return (
     <>
@@ -113,7 +164,44 @@ export default function GoalsScreen() {
             ) : null}
           </Card>
         ))}
+
+        {ended.length ? (
+          <Card title="Challenges terminés">
+            {ended.map((g) => {
+              const r = challengeReview(data, g, today);
+              return (
+                <View key={g.id} style={styles.endedRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.endedTitle, { color: c.text }]} numberOfLines={1}>
+                      {g.title}
+                    </Text>
+                    {r ? <Muted>{`${r.succeeded}/${r.total} ${r.total > 1 ? r.unit[1] : r.unit[0]} réussie${r.succeeded > 1 ? 's' : ''} · ${r.rate} %`}</Muted> : null}
+                  </View>
+                  <TextButton label="Bilan" onPress={() => setReviewId(g.id)} accessibilityLabel={`Voir le bilan de ${g.title}`} />
+                </View>
+              );
+            })}
+          </Card>
+        ) : null}
       </Screen>
+
+      <ChallengeSheet
+        review={review}
+        reflection={reviewGoal ? readReflection(reviewGoal.id) : null}
+        onClose={() => {
+          if (reviewGoal && !settings[reflectionKey(reviewGoal.id)]) void saveSettings(db, { [reflectionKey(reviewGoal.id)]: JSON.stringify({ helped: '', hindered: '' }) }).then(reload);
+          setReviewId(null);
+        }}
+        onSaveReflection={(r) => reviewGoal && void saveSettings(db, { [reflectionKey(reviewGoal.id)]: JSON.stringify(r) }).then(reload)}
+        onAction={(a) => reviewGoal && void applyAction(reviewGoal, a)}
+        onArchive={() =>
+          reviewGoal &&
+          void run(async () => {
+            await archiveGoal(db, reviewGoal.id);
+            setReviewId(null);
+          })
+        }
+      />
 
       <GoalSheet
         visible={!!sheet}
@@ -155,5 +243,7 @@ const styles = StyleSheet.create({
   nums: { fontSize: 13, fontVariant: ['tabular-nums'] },
   bar: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4 },
+  endedRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingVertical: 6 },
+  endedTitle: { fontSize: 15, fontWeight: '500' },
   child: { marginLeft: Spacing.three, paddingLeft: Spacing.three - 4, borderLeftWidth: 2 },
 });
