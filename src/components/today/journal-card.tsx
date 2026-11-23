@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { BatteryScale, DotScale } from '@/components/dot-scale';
-import { Card } from '@/components/ui';
+import { Card, Chip } from '@/components/ui';
 import { EnergyLabels, MoodColors, MoodLabels, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Energy, JournalEntry, Mood } from '@/logic';
@@ -38,8 +37,23 @@ export function JournalCard({ day, entry, onSave }: { day: string; entry: Journa
 
   return (
     <Card title="Journal">
-      <DotScale title="Humeur" labels={MoodLabels} colors={MoodColors} value={mood} onChange={(v) => onSave({ mood: v as Mood | null, energy, text })} />
-      <BatteryScale title="Énergie" labels={EnergyLabels} value={energy} onChange={(v) => onSave({ mood, energy: v as Energy | null, text })} />
+      <View style={styles.row} accessibilityLabel="Humeur">
+        {MoodLabels.map((l, i) => (
+          <Chip key={l} label={l} selected={mood === i} style={styles.flex} onPress={() => onSave({ mood: mood === i ? null : (i as Mood), energy, text })}>
+            <View style={[styles.dot, { backgroundColor: MoodColors[i] }]} />
+          </Chip>
+        ))}
+      </View>
+      <Text style={[styles.label, { color: c.textSecondary }]}>Énergie</Text>
+      <View style={styles.row} accessibilityLabel="Énergie">
+        {EnergyLabels.map((l, i) => (
+          <Chip key={l} label={l} selected={energy === i} style={styles.flex} onPress={() => onSave({ mood, energy: energy === i ? null : (i as Energy), text })}>
+            <View style={[styles.batt, { borderColor: c.textSecondary }]}>
+              <View style={{ width: `${(i + 1) * 20}%` as `${number}%`, height: '100%', backgroundColor: c.text, borderRadius: 1 }} />
+            </View>
+          </Chip>
+        ))}
+      </View>
       <TextInput
         value={text}
         onChangeText={(t) => {
@@ -59,5 +73,10 @@ export function JournalCard({ day, entry, onSave }: { day: string; entry: Journa
 }
 
 const styles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 6 },
+  flex: { flex: 1 },
+  dot: { width: 12, height: 12, borderRadius: 6 },
+  batt: { width: 22, height: 10, borderWidth: 1.5, borderRadius: 3, padding: 1 },
+  label: { fontSize: 13 },
   input: { minHeight: 48, borderWidth: 1, borderRadius: Radius.control, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, textAlignVertical: 'top' },
 });

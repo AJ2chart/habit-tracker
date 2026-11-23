@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { DotScale } from '@/components/dot-scale';
 import { TimeRange } from '@/components/time-wheel';
 import { Button, Card, Chip, Row, TextButton } from '@/components/ui';
 import { MoodColors, Spacing } from '@/constants/theme';
@@ -61,7 +60,7 @@ export function SleepCard({
             <Text style={[styles.big, { color: c.text }]}>{formatDuration(sleepMinutes(entry.bed, entry.wake))}</Text>
             <Text style={[styles.times, { color: c.textSecondary }]}>{`${entry.bed} → ${entry.wake}`}</Text>
             <View style={{ flex: 1 }} />
-            {entry.quality != null ? <View style={[styles.dot, { backgroundColor: MoodColors[entry.quality] }]} /> : null}
+            {entry.quality != null ? <View style={[styles.dot, { backgroundColor: MoodColors[entry.quality], alignSelf: 'center' }]} /> : null}
           </View>
         </Card>
       </Pressable>
@@ -72,7 +71,14 @@ export function SleepCard({
     <Card title={title} right={plausible ? <Text style={{ color: c.text, fontWeight: '600' }}>{formatDuration(duration)}</Text> : undefined}>
       <TimeRange startLabel="Coucher" endLabel="Lever" start={bed} end={wake} onStart={setBed} onEnd={setWake} />
       {!plausible ? <Text style={{ color: c.warn, fontSize: 13 }}>Durée inhabituelle : vérifie les heures.</Text> : null}
-      <DotScale title="Qualité" labels={SleepQualityLabels} colors={MoodColors} value={quality} onChange={setQuality} />
+      <Text style={[styles.label, { color: c.textSecondary }]}>Qualité</Text>
+      <Row>
+        {SleepQualityLabels.map((l, i) => (
+          <Chip key={l} label={l} selected={quality === i} onPress={() => setQuality(quality === i ? null : i)} style={{ flex: 1 }}>
+            <View style={[styles.dot, { backgroundColor: MoodColors[i] }]} />
+          </Chip>
+        ))}
+      </Row>
       <Row>
         <Text style={[styles.label, { color: c.textSecondary, flex: 1 }]}>Réveils</Text>
         {[0, 1, 2, 3].map((n) => (
@@ -103,6 +109,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 13 },
   big: { fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] },
   times: { fontSize: 14, fontVariant: ['tabular-nums'] },
-  dot: { width: 12, height: 12, borderRadius: 6, alignSelf: 'center' },
+  dot: { width: 12, height: 12, borderRadius: 6 },
   small: { width: 44, paddingVertical: 6 },
 });
