@@ -1,14 +1,13 @@
-import { useRef, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { useContext, useRef, useState } from 'react';
+import { PanResponder, StyleSheet, Text, View } from 'react-native';
 
+import { ScrollLockContext } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-const ITEM = 40;
-const VISIBLE = 5;
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 const pad = (n: number) => String(n).padStart(2, '0');
+/** Distance de glissé (px) pour avancer de 5 minutes. */
+const STEP_PX = 9;
 
 /** Sépare "HH:MM" ; les minutes sont arrondies au pas de 5. */
 export function splitTime(value: string): [number, number] {
@@ -24,81 +23,98 @@ export function shiftTime(value: string, minutes: number): string {
   return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`;
 }
 
-function Column({ values, selected, onSelect, label }: { values: number[]; selected: number; onSelect: (v: number) => void; label: string }) {
+/**
+ * Champ d'heure à maintenir : on pose le doigt, on glisse vers le haut (plus tard)
+ * ou vers le bas (plus tôt), par pas de 5 minutes ; la roue disparaît au relâcher.
+ */
+export function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   const c = useTheme();
-  const ref = useRef<ComponentRef<typeof ScrollView>>(null);
-  const index = Math.max(0, values.indexOf(selected));
+  const lockScroll = useContext(ScrollLockContext);
+  const [active, setActive] = useState(false);
+  const [hint, setHint] = useState(false);
+  const base = useRef(value);
+  const current = useRef(value);
+  const moved = useRef(false);
+  const latest = useRef({ value, onChange, lockScroll });
+  latest.current = { value, onChange, lockScroll };
 
-  const settle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.min(values.length - 1, Math.max(0, Math.round(e.nativeEvent.contentOffset.y / ITEM)));
-    if (values[i] !== selected) onSelect(values[i]);
-  };
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        base.current = latest.current.value;
+        current.current = latest.current.value;
+        moved.current = false;
+        latest.current.lockScroll(true);
+        setHint(false);
+        setActive(true);
+      },
+      onPanResponderMove: (_e, g) => {
+        const steps = Math.round(-g.dy / STEP_PX);
+        if (steps !== 0) moved.current = true;
+        const next = shiftTime(base.current, steps * 5);
+        if (next !== current.current) {
+          current.current = next;
+          latest.current.onChange(next);
+        }
+      },
+      onPanResponderRelease: () => {
+        latest.current.lockScroll(false);
+        setActive(false);
+        if (!moved.current) {
+          setHint(true);
+          setTimeout(() => setHint(false), 2200);
+        }
+      },
+      onPanResponderTerminate: () => {
+        latest.current.lockScroll(false);
+        setActive(false);
+      },
+    }),
+  ).current;
 
-  return (
-    <ScrollView
-      ref={ref}
-      style={styles.column}
-      contentContainerStyle={{ paddingVertical: ITEM * Math.floor(VISIBLE / 2) }}
-      showsVerticalScrollIndicator={false}
-      snapToInterval={ITEM}
-      decelerationRate="fast"
-      nestedScrollEnabled
-      onLayout={() => ref.current?.scrollTo({ y: index * ITEM, animated: false })}
-      onMomentumScrollEnd={settle}
-      onScrollEndDrag={(e) => {
-        // Sans élan (glissé lent), Android n'envoie pas de fin d'élan : on se cale ici.
-        if (Math.abs(e.nativeEvent.velocity?.y ?? 0) < 0.1) settle(e);
-      }}
-      accessibilityLabel={label}>
-      {values.map((v) => (
-        <Pressable
-          key={v}
-          onPress={() => {
-            ref.current?.scrollTo({ y: values.indexOf(v) * ITEM, animated: true });
-            onSelect(v);
-          }}
-          style={styles.item}
-          accessibilityRole="button"
-          accessibilityState={{ selected: v === selected }}>
-          <Text style={[styles.itemText, { color: v === selected ? c.text : c.textSecondary, fontWeight: v === selected ? '700' : '400' }]}>{pad(v)}</Text>
-        </Pressable>
-      ))}
-    </ScrollView>
-  );
-}
+  const around = [-10, -5, 0, 5, 10].map((d) => shiftTime(value, d));
 
-/** Roue heures / minutes (pas de 5 min), sans dépendance native. */
-export function TimeWheel({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const c = useTheme();
-  const [h, m] = splitTime(value);
-  return (
-    <View style={[styles.wheel, { backgroundColor: c.background, borderColor: c.line }]}>
-      <View pointerEvents="none" style={[styles.band, { backgroundColor: c.backgroundSelected }]} />
-      <Column label="Heures" values={HOURS} selected={h} onSelect={(nh) => onChange(`${pad(nh)}:${pad(m)}`)} />
-      <Text style={[styles.colon, { color: c.text }]}>:</Text>
-      <Column label="Minutes" values={MINUTES} selected={m} onSelect={(nm) => onChange(`${pad(h)}:${pad(nm)}`)} />
-    </View>
-  );
-}
-
-/** Champ d'heure : affiche la valeur, s'ouvre en roue au toucher. */
-export function TimeField({ label, value, active, onPress }: { label: string; value: string; active: boolean; onPress: () => void }) {
-  const c = useTheme();
   return (
     <View style={{ gap: 4, flex: 1 }}>
       <Text style={{ color: c.textSecondary, fontSize: 13 }}>{label}</Text>
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={`${label} : ${value}. Toucher pour changer`}
+      <View
+        {...responder.panHandlers}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={`${label} : ${value}`}
+        accessibilityHint="Maintiens et fais glisser vers le haut ou le bas pour changer l'heure"
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => onChange(shiftTime(value, e.nativeEvent.actionName === 'increment' ? 5 : -5))}
         style={[styles.field, { backgroundColor: c.background, borderColor: active ? c.text : c.line, borderWidth: active ? 2 : 1 }]}>
         <Text style={[styles.fieldText, { color: c.text }]}>{value}</Text>
-      </Pressable>
+        <Text style={[styles.arrows, { color: c.textSecondary }]}>⇅</Text>
+      </View>
+      {active ? (
+        // Roue flottante, visible seulement pendant le geste.
+        <View pointerEvents="none" style={[styles.wheel, { backgroundColor: c.backgroundElement, borderColor: c.line }]}>
+          {around.map((t, i) => (
+            <Text
+              key={i}
+              style={[
+                styles.wheelItem,
+                i === 2
+                  ? { color: c.text, fontSize: 24, fontWeight: '700', backgroundColor: c.backgroundSelected }
+                  : { color: c.textSecondary, opacity: i === 0 || i === 4 ? 0.45 : 0.8 },
+              ]}>
+              {t}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+      {hint ? <Text style={{ color: c.textSecondary, fontSize: 12, textAlign: 'center' }}>Maintiens et glisse ↑↓</Text> : null}
     </View>
   );
 }
 
-/** Deux champs d'heure côte à côte, avec une seule roue ouverte à la fois sous les champs. */
+/** Deux champs d'heure côte à côte. */
 export function TimeRange({
   startLabel,
   endLabel,
@@ -106,8 +122,6 @@ export function TimeRange({
   end,
   onStart,
   onEnd,
-  open,
-  setOpen,
 }: {
   startLabel: string;
   endLabel: string;
@@ -115,28 +129,33 @@ export function TimeRange({
   end: string;
   onStart: (v: string) => void;
   onEnd: (v: string) => void;
-  open: 'start' | 'end' | null;
-  setOpen: (o: 'start' | 'end' | null) => void;
 }) {
   return (
-    <View style={{ gap: Spacing.two }}>
-      <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-        <TimeField label={startLabel} value={start} active={open === 'start'} onPress={() => setOpen(open === 'start' ? null : 'start')} />
-        <TimeField label={endLabel} value={end} active={open === 'end'} onPress={() => setOpen(open === 'end' ? null : 'end')} />
-      </View>
-      {open === 'start' ? <TimeWheel key="start" value={start} onChange={onStart} /> : null}
-      {open === 'end' ? <TimeWheel key="end" value={end} onChange={onEnd} /> : null}
+    <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+      <TimeField label={startLabel} value={start} onChange={onStart} />
+      <TimeField label={endLabel} value={end} onChange={onEnd} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wheel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: ITEM * VISIBLE, borderWidth: 1, borderRadius: Radius.control, overflow: 'hidden' },
-  band: { position: 'absolute', left: 8, right: 8, top: ITEM * Math.floor(VISIBLE / 2), height: ITEM, borderRadius: 8 },
-  column: { width: 72, height: ITEM * VISIBLE, flexGrow: 0 },
-  item: { height: ITEM, alignItems: 'center', justifyContent: 'center' },
-  itemText: { fontSize: 22, fontVariant: ['tabular-nums'] },
-  colon: { fontSize: 22, fontWeight: '700', paddingHorizontal: 4 },
-  field: { borderRadius: Radius.control, paddingVertical: 10, alignItems: 'center' },
+  field: { borderRadius: Radius.control, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   fieldText: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  arrows: { fontSize: 14 },
+  wheel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 50,
+    borderWidth: 1,
+    borderRadius: Radius.control,
+    paddingVertical: 6,
+    elevation: 6,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  wheelItem: { textAlign: 'center', fontSize: 17, paddingVertical: 4, fontVariant: ['tabular-nums'], marginHorizontal: 6, borderRadius: 6, overflow: 'hidden' },
 });

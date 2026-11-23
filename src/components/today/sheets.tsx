@@ -52,7 +52,6 @@ export function AddSlotSheet({
   const [title, setTitle] = useState('');
   const [start, setStart] = useState('10:00');
   const [end, setEnd] = useState('11:00');
-  const [open, setOpen] = useState<'start' | 'end' | null>(null);
   const [habitId, setHabitId] = useState<string | null>(null);
   const [repeat, setRepeat] = useState<NewSlot['repeat']>('once');
   const [days, setDays] = useState<number[]>([]);
@@ -66,7 +65,6 @@ export function AddSlotSheet({
     setTitle(rule?.title ?? '');
     setStart(rule?.start ?? next);
     setEnd(rule?.end ?? shiftTime(next, 60));
-    setOpen(null);
     setHabitId(rule?.habitId ?? null);
     setRepeat(rule?.type ?? 'once');
     setDays(rule && rule.type === 'custom' ? rule.days : [fromKey(day).getDay()]);
@@ -92,8 +90,6 @@ export function AddSlotSheet({
           setEnd(shiftTime(v, len));
         }}
         onEnd={setEnd}
-        open={open}
-        setOpen={setOpen}
       />
       {!timesOk ? <Text style={{ color: c.warn, fontSize: 13 }}>La fin doit être après le début.</Text> : null}
 

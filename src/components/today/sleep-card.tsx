@@ -36,7 +36,6 @@ export function SleepCard({
   const [editing, setEditing] = useState(!entry);
   const [bed, setBed] = useState(entry?.bed ?? previous?.bed ?? '23:00');
   const [wake, setWake] = useState(entry?.wake ?? previous?.wake ?? '07:00');
-  const [open, setOpen] = useState<'start' | 'end' | null>(null);
   const [quality, setQuality] = useState<number | null>(entry?.quality ?? null);
   const [awakenings, setAwakenings] = useState<number | null>(entry?.awakenings ?? null);
 
@@ -44,7 +43,6 @@ export function SleepCard({
     setEditing(!entry);
     setBed(entry?.bed ?? previous?.bed ?? '23:00');
     setWake(entry?.wake ?? previous?.wake ?? '07:00');
-    setOpen(null);
     setQuality(entry?.quality ?? null);
     setAwakenings(entry?.awakenings ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,8 +81,8 @@ export function SleepCard({
 
   return (
     <Card title={title} right={plausible ? <Muted>{formatDuration(duration)}</Muted> : undefined}>
-      <TimeRange startLabel="Coucher" endLabel="Lever" start={bed} end={wake} onStart={setBed} onEnd={setWake} open={open} setOpen={setOpen} />
-      {!entry && previous && !open ? <Muted>Heures de ta dernière nuit notée : touche-les pour les changer.</Muted> : null}
+      <TimeRange startLabel="Coucher" endLabel="Lever" start={bed} end={wake} onStart={setBed} onEnd={setWake} />
+      {!entry && previous ? <Muted>Heures de ta dernière nuit notée. Maintiens une heure et glisse pour la changer.</Muted> : null}
       {!plausible ? <Text style={{ color: c.warn, fontSize: 13 }}>Durée inhabituelle : vérifie les heures.</Text> : null}
 
       <Muted>Qualité ressentie</Muted>
