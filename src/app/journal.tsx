@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { BackupCard } from '@/components/journal/backup-card';
 import { Highlighted, TaggedText } from '@/components/journal/rich-text';
 import { Card, Chip, IconButton, Muted, Row, Screen } from '@/components/ui';
 import { MoodColors, MoodLabels, Radius, Spacing } from '@/constants/theme';
@@ -193,8 +194,14 @@ function SearchResults({ data, query }: { data: Data; query: string }) {
 
 export default function JournalScreen() {
   const c = useTheme();
-  const { data, today } = useAppData();
+  const { db, data, today, reload } = useAppData();
   const [mode, setMode] = useState<'liste' | 'calendrier'>('liste');
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+  useEffect(() => {
+    void db
+      .getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = 'last_backup'")
+      .then((r) => setLastBackup(r?.value ?? null));
+  }, [db, data]);
   const [query, setQuery] = useState('');
   const [month, setMonth] = useState(() => toKey(new Date()).slice(0, 7) + '-01');
 
@@ -235,6 +242,7 @@ export default function JournalScreen() {
           ) : (
             <CalendarView data={data} today={today} month={month} setMonth={setMonth} />
           )}
+          <BackupCard db={db} lastBackup={lastBackup} onDone={() => void reload()} />
         </>
       )}
     </Screen>

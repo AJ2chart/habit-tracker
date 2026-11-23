@@ -25,13 +25,17 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Installer les dépendances
-        run: npm ci
+        # npm install (et non npm ci) : ajoute les nouvelles dépendances pures JavaScript
+        # déclarées dans package.json, même si package-lock.json n'a pas pu être mis à jour.
+        run: npm install --no-audit --no-fund
 
       - name: Vérifier le code (TypeScript)
         run: npx tsc --noEmit
 
       - name: Tester la logique
-        run: npx --yes tsx tests/logic.test.ts
+        run: |
+          npx --yes tsx tests/logic.test.ts
+          npx --yes tsx tests/backup.test.ts
 
       - name: Publier la mise à jour
         env:
