@@ -9,7 +9,7 @@ const t = (name: string, fn: () => void) => {
   console.log("ok -", name);
 };
 
-const empty = (): Data => ({ habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {}, morning: {}, plans: {} });
+const empty = (): Data => ({ habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {}, morning: {}, plans: {}, notes: {} });
 
 t("dates", () => {
   assert.equal(L.mondayOf("2026-11-23"), "2026-11-23"); // lundi
@@ -295,3 +295,12 @@ t("étiquettes suggérées", () => {
   assert.equal(L.toggleTag("Beaucoup de #Réunions", "réunions"), "Beaucoup de");
 });
 console.log(`${passed} groupes au total (avec étiquettes)`);
+
+t("notes rapides", () => {
+  const d = empty();
+  d.notes["2026-11-24"] = [{ id: "n", date: "2026-11-24", time: "14:30", text: "Réunion tendue #stress" }];
+  assert.equal(L.suggestTags(d)[0], "stress");
+  const r = L.search(d, "tendue");
+  assert.equal(r.length, 1);
+  assert.equal(r[0].hits[0].label, "14:30");
+});

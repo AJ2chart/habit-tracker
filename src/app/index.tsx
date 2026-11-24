@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AddHabitSheet, AddSlotSheet, ManageHabitsSheet, SlotDetailSheet, type NewSlot } from '@/components/today/sheets';
 import { HabitsCard } from '@/components/today/habits-card';
 import { JournalCard, MorningMoodCard } from '@/components/today/journal-card';
+import { NotesCard } from '@/components/today/notes-card';
 import { NowCard } from '@/components/today/now-card';
 import { RoutineCard } from '@/components/today/routine-card';
 import { ScheduleCard } from '@/components/today/schedule-card';
@@ -20,6 +21,9 @@ import {
   deleteSlot,
   ensureOccurrences,
   saveJournal,
+  addNote,
+  updateNote,
+  deleteNote,
   saveMorning,
   saveSleep,
   saveSlotNote,
@@ -108,7 +112,7 @@ export default function TodayScreen() {
   const morning = parseMorningSettings(settings);
   const routine = isToday && morning.enabled ? morningChecklist(data, day, morning) : [];
   const showRoutine = routine.length > 0 && routine.some((i) => !i.done);
-  const showMorningMood = day <= today && (morning.steps.includes('journal') || !!data.morning[day]);
+  const showMorningMood = day <= today;
 
   const tags = suggestTags(data);
   // Après 17 h (ou un autre jour), le soir passe devant ; avant, la journée commence par le matin.
@@ -156,10 +160,19 @@ export default function TodayScreen() {
         onManage={() => setManaging(true)}
       />
     ),
+    notes:
+      day <= today ? (
+        <NotesCard
+          notes={data.notes[day] ?? []}
+          onAdd={(text) => run(() => addNote(db, day, nowHM(), text))}
+          onUpdate={(id, text) => run(() => updateNote(db, id, text))}
+          onDelete={(id) => run(() => deleteNote(db, id))}
+        />
+      ) : null,
     evening: showEvening ? (
       <JournalCard
         day={day}
-        title={showMorningMood ? 'Ce soir' : 'Journal'}
+        title="Ce soir"
         entry={data.journal[day]}
         tags={tags}
         onSave={(e) => run(() => saveJournal(db, day, e))}
@@ -171,8 +184,8 @@ export default function TodayScreen() {
     ) : null,
   };
   const cards = evening
-    ? ['now', 'evening', 'habits', 'schedule', 'routine', 'sleep', 'morning']
-    : ['routine', 'sleep', 'morning', 'now', 'schedule', 'habits', 'evening'];
+    ? ['now', 'evening', 'notes', 'habits', 'schedule', 'routine', 'sleep', 'morning']
+    : ['routine', 'sleep', 'morning', 'now', 'notes', 'schedule', 'habits', 'evening'];
 
   const lyKey = sameDayLastYear(day);
   const lastYear = data.journal[lyKey];

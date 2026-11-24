@@ -48,6 +48,7 @@ export function computeDayShift(data: Data, today: DayKey, windowDays = 30): Day
     const tagsFor = (k: DayKey) => {
       let t = tagsOf(data.journal[k]?.text);
       for (const s of data.slots[k] ?? []) t = t.concat(tagsOf(s.note));
+      for (const n of data.notes?.[k] ?? []) t = t.concat(tagsOf(n.text));
       return new Set(t);
     };
     const all = new Set<string>();

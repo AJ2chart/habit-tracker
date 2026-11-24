@@ -15,7 +15,7 @@ export const STARTER_TAGS = [
   "nature", "sortie",
 ] as const;
 
-/** Nombre d'utilisations de chaque étiquette : notes du soir, du matin, et des créneaux. */
+/** Nombre d'utilisations de chaque étiquette : notes du soir, du matin, rapides et des créneaux. */
 export function tagCounts(data: Data): Map<string, number> {
   const counts = new Map<string, number>();
   const add = (text?: string | null) => {
@@ -24,6 +24,7 @@ export function tagCounts(data: Data): Map<string, number> {
   for (const j of Object.values(data.journal)) add(j.text);
   for (const m of Object.values(data.morning)) add(m.note);
   for (const list of Object.values(data.slots)) for (const s of list) add(s.note);
+  for (const list of Object.values(data.notes ?? {})) for (const n of list) add(n.text);
   return counts;
 }
 

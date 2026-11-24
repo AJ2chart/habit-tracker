@@ -12,6 +12,7 @@ export const BACKUP_TABLES = [
   'sleep_entries',
   'morning_entries',
   'day_plans',
+  'day_notes',
   'settings',
 ] as const;
 

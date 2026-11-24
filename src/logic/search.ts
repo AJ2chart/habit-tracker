@@ -55,7 +55,7 @@ const REVIEW_LABELS = { good: "A marché", hard: "A coincé", change: "À change
 export function search(data: Data, query: string): DayResult[] {
   if (!query.trim()) return [];
   const reviewSundays = Object.keys(data.reviews).map((wk) => addDays(wk, 6));
-  const days = [...new Set([...Object.keys(data.journal), ...Object.keys(data.slots), ...Object.keys(data.checks), ...reviewSundays])]
+  const days = [...new Set([...Object.keys(data.journal), ...Object.keys(data.slots), ...Object.keys(data.checks), ...Object.keys(data.notes ?? {}), ...Object.keys(data.morning ?? {}), ...reviewSundays])]
     .sort()
     .reverse();
   const results: DayResult[] = [];
@@ -64,6 +64,13 @@ export function search(data: Data, query: string): DayResult[] {
     const j = data.journal[day];
     const hj = j?.text ? highlight(j.text, query) : null;
     if (hj) hits.push({ kind: "journal", segments: hj });
+    const m = data.morning?.[day];
+    const hm = m?.note ? highlight(m.note, query) : null;
+    if (hm) hits.push({ kind: "journal", label: "Ce matin", segments: hm });
+    for (const n of data.notes?.[day] ?? []) {
+      const h = highlight(n.text, query);
+      if (h) hits.push({ kind: "journal", label: n.time, segments: h });
+    }
     if (weekday(day) === 0) {
       const rv = data.reviews[mondayOf(day)];
       if (rv)

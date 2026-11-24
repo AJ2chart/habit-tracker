@@ -255,3 +255,17 @@ export async function setPlanValidated(db: SQLiteDatabase, date: DayKey, on: boo
   if (on) await db.runAsync("INSERT OR REPLACE INTO day_plans (date, validated_at) VALUES (?, datetime('now', 'localtime'))", date);
   else await db.runAsync('DELETE FROM day_plans WHERE date = ?', date);
 }
+
+// ——— Notes rapides ———
+
+export async function addNote(db: SQLiteDatabase, date: DayKey, time: string, text: string) {
+  await db.runAsync('INSERT INTO day_notes (id, date, time, text) VALUES (?, ?, ?, ?)', newId(), date, time, text);
+}
+
+export async function updateNote(db: SQLiteDatabase, id: string, text: string) {
+  await db.runAsync('UPDATE day_notes SET text = ? WHERE id = ?', text, id);
+}
+
+export async function deleteNote(db: SQLiteDatabase, id: string) {
+  await db.runAsync('DELETE FROM day_notes WHERE id = ?', id);
+}

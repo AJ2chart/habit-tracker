@@ -18,7 +18,11 @@ const WEEK_HEAD = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
 /** Ouvre ce jour dans l'onglet Aujourd'hui. */
 const openDay = (k: DayKey) => router.navigate({ pathname: '/', params: { day: k, t: String(Date.now()) } });
 
-const isNoted = (data: Data, k: DayKey) => !!data.journal[k] && (!!data.journal[k].text || data.journal[k].mood !== null);
+const isNoted = (data: Data, k: DayKey) =>
+  (!!data.journal[k] && (!!data.journal[k].text || data.journal[k].mood !== null)) ||
+  data.morning[k]?.mood != null ||
+  !!data.morning[k]?.note ||
+  !!data.notes[k]?.length;
 
 function MoodDot({ mood, size = 10 }: { mood: number | null | undefined; size?: number }) {
   const c = useTheme();
@@ -55,14 +59,20 @@ function DayEntry({ data, k, first, onTag }: { data: Data; k: DayKey; first: boo
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.entryDate, { color: c.text }]}>{longDate(k)}</Text>
         <Muted>{`${habits} habitude${habits > 1 ? 's' : ''} · ${slots.filter((s) => s.done).length}/${slots.length} créneaux`}</Muted>
-        {j?.text ? <TaggedText text={j.text} onTag={onTag} numberOfLines={4} /> : <Muted>Pas de note</Muted>}
+        {j?.text ? <TaggedText text={j.text} onTag={onTag} numberOfLines={4} /> : !(data.notes[k] ?? []).length ? <Muted>Pas de note</Muted> : null}
+        {(data.notes[k] ?? []).map((n) => (
+          <Text key={n.id} numberOfLines={2} style={{ color: c.textSecondary, fontSize: 14 }}>
+            <Text style={{ fontVariant: ['tabular-nums'] }}>{`${n.time}  `}</Text>
+            <Text style={{ color: c.text }}>{n.text}</Text>
+          </Text>
+        ))}
       </View>
     </Pressable>
   );
 }
 
 function ListView({ data, today, onTag }: { data: Data; today: string; onTag: (t: string) => void }) {
-  const keys = Object.keys(data.journal)
+  const keys = [...new Set([...Object.keys(data.journal), ...Object.keys(data.morning), ...Object.keys(data.notes)])]
     .filter((k) => k <= today && isNoted(data, k))
     .sort()
     .reverse();
@@ -185,6 +195,7 @@ function SearchResults({ data, query }: { data: Data; query: string }) {
             </Text>
             {r.hits.map((h, hi) => (
               <View key={hi} style={{ gap: 1 }}>
+                {h.kind === 'journal' && h.label ? <Muted>{h.label === 'Ce matin' ? 'Ce matin' : `${h.label} · note rapide`}</Muted> : null}
                 {h.kind === 'slot' ? <Muted>{`${h.label} · créneau`}</Muted> : null}
                 {h.kind === 'note' ? <Muted>{`${h.label} · description`}</Muted> : null}
                 {h.kind === 'habit' ? <Muted>Habitude cochée</Muted> : null}

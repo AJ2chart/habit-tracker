@@ -85,6 +85,7 @@ async function main() {
       CREATE TABLE sleep_entries (date TEXT PRIMARY KEY, bed_time TEXT, wake_time TEXT, quality INTEGER, awakenings INTEGER);
       CREATE TABLE morning_entries (date TEXT PRIMARY KEY, mood INTEGER, energy INTEGER, note TEXT);
       CREATE TABLE day_plans (date TEXT PRIMARY KEY, validated_at TEXT);
+      CREATE TABLE day_notes (id TEXT PRIMARY KEY, date TEXT, time TEXT, text TEXT, created_at TEXT);
       CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT);
       PRAGMA user_version = 2;`;
     src.raw.exec(schema);
@@ -94,7 +95,8 @@ async function main() {
       INSERT INTO goals VALUES ('g1', 'Lire', NULL);
       INSERT INTO sleep_entries VALUES ('2026-11-23', '23:15', '07:05', 3, 1);
       INSERT INTO morning_entries VALUES ('2026-11-23', 2, 1, 'Fatigué');
-      INSERT INTO day_plans VALUES ('2026-11-23', '2026-11-23 07:40:00');`);
+      INSERT INTO day_plans VALUES ('2026-11-23', '2026-11-23 07:40:00');
+      INSERT INTO day_notes VALUES ('n1', '2026-11-23', '14:30', 'Réunion tendue #stress', '2026-11-23 13:30:00');`);
     const dump = await dumpDatabase(src as never);
     const file = await encryptBackup(JSON.stringify(dump), "motdepasse", rnd, 1000);
 
@@ -108,10 +110,11 @@ async function main() {
 
     assert.equal((dst.raw.prepare("SELECT note FROM morning_entries").get() as { note: string }).note, "Fatigué");
     assert.equal(dst.raw.prepare("SELECT COUNT(*) AS n FROM day_plans").get()!.n, 1);
+    assert.equal((dst.raw.prepare("SELECT text FROM day_notes").get() as { text: string }).text, "Réunion tendue #stress");
 
     // Ancienne base sans les tables du matin : export possible, restauration qui les ignore.
     const old = fakeDb();
-    old.raw.exec(schema.replace(/CREATE TABLE (morning_entries|day_plans)[^;]*;/g, ""));
+    old.raw.exec(schema.replace(/CREATE TABLE (morning_entries|day_plans|day_notes)[^;]*;/g, ""));
     const oldDump = await dumpDatabase(old as never);
     assert.equal(oldDump.tables.morning_entries, undefined);
     await restoreDatabase(old as never, dump);

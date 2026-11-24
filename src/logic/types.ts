@@ -94,6 +94,15 @@ export interface MorningEntry {
   note: string;
 }
 
+/** Note rapide prise dans la journée (ressenti à chaud), avec son heure. */
+export interface DayNote {
+  id: string;
+  date: DayKey;
+  /** "HH:MM" */
+  time: string;
+  text: string;
+}
+
 /** Instantané des données nécessaire aux calculs. */
 export interface Data {
   habits: Habit[];
@@ -111,4 +120,6 @@ export interface Data {
   morning: Record<DayKey, MorningEntry>;
   /** date → heure de validation du planning du jour ("YYYY-MM-DD HH:MM:SS") */
   plans: Record<DayKey, string>;
+  /** date → notes rapides, dans l'ordre de l'heure */
+  notes: Record<DayKey, DayNote[]>;
 }

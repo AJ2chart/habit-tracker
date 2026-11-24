@@ -44,6 +44,8 @@ export const SHORT_NIGHT = 6 * 60 + 30;
 function dayTags(data: Data, k: DayKey): string[] {
   let t = tagsOf(data.journal[k]?.text);
   for (const s of data.slots[k] ?? []) t = t.concat(tagsOf(s.note));
+  for (const n of data.notes?.[k] ?? []) t = t.concat(tagsOf(n.text));
+  t = t.concat(tagsOf(data.morning?.[k]?.note));
   return [...new Set(t)];
 }
 

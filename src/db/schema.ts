@@ -4,7 +4,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
  * Version du schéma. Pour une évolution : incrémenter, puis ajouter un bloc
  * `if (version < N)` dans migrate(). Ne jamais modifier un bloc déjà publié.
  */
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export async function migrate(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -134,6 +134,20 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
         date TEXT PRIMARY KEY NOT NULL,
         validated_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
+    `);
+  }
+
+  if (version < 5) {
+    // Notes rapides prises dans la journée.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS day_notes (
+        id TEXT PRIMARY KEY NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        text TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS day_notes_date ON day_notes (date);
     `);
   }
 
