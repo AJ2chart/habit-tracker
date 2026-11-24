@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { TimeRange } from '@/components/time-wheel';
+import { TimeRange } from '@/components/time-field';
 import { Button, Card, Chip, Row, TextButton } from '@/components/ui';
 import { MoodColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';

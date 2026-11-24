@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ChallengeSheet, type Reflection } from '@/components/goals/challenge-sheet';
 import { GoalSheet } from '@/components/goals/goal-sheet';
-import { shiftTime } from '@/components/time-wheel';
+import { shiftTime } from '@/components/time-field';
 import { Button, Card, Muted, Screen, TextButton } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { addGoal, addRule, archiveGoal, incrementGoal, updateGoal } from '@/db/actions';

@@ -5,7 +5,7 @@ import { Button, Chip, Field, Muted, Row, Sheet } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { fromKey, ruleLabel, type Data, type RecurringRule, type RuleType, type Slot } from '@/logic';
-import { TimeRange, shiftTime } from '@/components/time-wheel';
+import { TimeRange, shiftTime } from '@/components/time-field';
 
 const DAY_CHIPS: [number, string][] = [
   [1, 'L'],
