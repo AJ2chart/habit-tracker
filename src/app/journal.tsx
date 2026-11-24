@@ -41,8 +41,16 @@ function DayEntry({ data, k, first, onTag }: { data: Data; k: DayKey; first: boo
   const slots = data.slots[k] ?? [];
   return (
     <Pressable onPress={() => openDay(k)} accessibilityRole="button" style={[styles.entry, !first && { borderTopColor: c.line, borderTopWidth: StyleSheet.hairlineWidth }]}>
-      <View style={{ paddingTop: 6 }}>
-        <MoodDot mood={j?.mood} />
+      <View style={{ paddingTop: 6, gap: 4, alignItems: 'center' }}>
+        {data.morning[k]?.mood != null ? (
+          // Matin au-dessus, soir en dessous.
+          <>
+            <MoodDot mood={data.morning[k].mood} size={7} />
+            <MoodDot mood={j?.mood} />
+          </>
+        ) : (
+          <MoodDot mood={j?.mood} />
+        )}
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.entryDate, { color: c.text }]}>{longDate(k)}</Text>

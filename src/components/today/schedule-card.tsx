@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Muted, TextButton } from '@/components/ui';
+import { Button, Card, Muted, TextButton } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { sortSlots, type Data, type Slot } from '@/logic';
@@ -14,6 +14,8 @@ export function ScheduleCard({
   onToggle,
   onOpen,
   onAdd,
+  validated,
+  onValidate,
 }: {
   data: Data;
   day: string;
@@ -21,6 +23,10 @@ export function ScheduleCard({
   onToggle: (slot: Slot) => void;
   onOpen: (slot: Slot) => void;
   onAdd: () => void;
+  /** Planning du jour validé (routine du matin) */
+  validated: boolean;
+  /** Absent : pas de bouton de validation (journée passée) */
+  onValidate?: (on: boolean) => void;
 }) {
   const c = useTheme();
   const slots = sortSlots(data.slots[day] ?? []);
@@ -66,6 +72,16 @@ export function ScheduleCard({
         );
       })}
       {isToday && nowIndex === -1 && slots.length > 0 ? nowLine : null}
+      {onValidate ? (
+        validated ? (
+          <View style={styles.validated}>
+            <Muted>Journée validée ✓</Muted>
+            <TextButton label="Annuler" onPress={() => onValidate(false)} accessibilityLabel="Annuler la validation de la journée" />
+          </View>
+        ) : (
+          <Button label="Valider ma journée" variant="small" onPress={() => onValidate(true)} />
+        )
+      ) : null}
     </Card>
   );
 }
@@ -78,5 +94,6 @@ const styles = StyleSheet.create({
   meta: { fontSize: 13 },
   check: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   checkMark: { fontSize: 14, fontWeight: '700' },
+  validated: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   now: { height: 2, borderRadius: 2, marginVertical: 2 },
 });

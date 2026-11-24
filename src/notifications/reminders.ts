@@ -72,13 +72,13 @@ export function syncReminders(data: Data, settings: ReminderSettings, morning: M
         const id = n.request.identifier;
         if (!day) continue;
         if (id.startsWith(PREFIX) && (!settings.enabled || isDayFilled(data, day, settings.criteria))) await Notifications.dismissNotificationAsync(id);
-        if (id.startsWith(MORNING) && (!morning.enabled || isMorningDone(data, day, morning.criteria))) await Notifications.dismissNotificationAsync(id);
+        if (id.startsWith(MORNING) && (!morning.enabled || isMorningDone(data, day, morning))) await Notifications.dismissNotificationAsync(id);
       }
 
       if ((!settings.enabled && !morning.enabled) || !(await hasReminderPermission())) return;
       await ensureChannel();
       for (const { day, at } of plannedMorning(data, morning, new Date())) {
-        const msg = morningMessage(data, day);
+        const msg = morningMessage(data, day, morning);
         await Notifications.scheduleNotificationAsync({
           identifier: `${MORNING}${day}`,
           content: { title: msg.title, body: msg.body, data: { day }, sticky: morning.sticky, autoDismiss: !morning.sticky },

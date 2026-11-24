@@ -86,6 +86,14 @@ export interface SleepEntry {
   awakenings: number | null;
 }
 
+/** Humeur du matin, notée au réveil ; l'entrée du journal (JournalEntry) est celle du soir. */
+export interface MorningEntry {
+  date: DayKey;
+  mood: Mood | null;
+  energy: Energy | null;
+  note: string;
+}
+
 /** Instantané des données nécessaire aux calculs. */
 export interface Data {
   habits: Habit[];
@@ -99,4 +107,8 @@ export interface Data {
   reviews: Record<DayKey, WeeklyReview>;
   /** date du réveil → nuit */
   sleep: Record<DayKey, SleepEntry>;
+  /** date → humeur du matin */
+  morning: Record<DayKey, MorningEntry>;
+  /** date → heure de validation du planning du jour ("YYYY-MM-DD HH:MM:SS") */
+  plans: Record<DayKey, string>;
 }

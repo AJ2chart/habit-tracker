@@ -5,11 +5,11 @@ import { TimeField } from '@/components/time-field';
 import { Button, Card, Chip, Muted, Row } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { MORNING_CRITERIA_LABELS, type MorningCriteria, type MorningSettings } from '@/logic';
+import { MORNING_STEP_LABELS, type Habit, type MorningSettings, type MorningStep } from '@/logic';
 import { hasReminderPermission, requestReminderPermission } from '@/notifications/reminders';
 
 /** Réglages du rappel du matin ; chaque changement est enregistré tout de suite. */
-export function MorningCard({ settings, onChange }: { settings: MorningSettings; onChange: (s: MorningSettings) => void }) {
+export function MorningCard({ settings, habits, onChange }: { settings: MorningSettings; habits: Habit[]; onChange: (s: MorningSettings) => void }) {
   const c = useTheme();
   const [denied, setDenied] = useState(false);
 
@@ -25,7 +25,7 @@ export function MorningCard({ settings, onChange }: { settings: MorningSettings;
 
   return (
     <Card title="Rappel du matin">
-      <Muted>Noter ta nuit et voir ta journée, chaque matin.</Muted>
+      <Muted>Une routine à cocher chaque matin ; le rappel reste tant qu’elle n’est pas faite.</Muted>
       <Row>
         <Chip label="Désactivé" selected={!settings.enabled} onPress={() => onChange({ ...settings, enabled: false })} style={{ flex: 1 }} />
         <Chip label="Activé" selected={settings.enabled} onPress={() => void enable()} style={{ flex: 1 }} />
@@ -46,12 +46,41 @@ export function MorningCard({ settings, onChange }: { settings: MorningSettings;
             <TimeField label="Heure du rappel" value={settings.time} onChange={(time) => onChange({ ...settings, time })} />
             <View style={{ flex: 1 }} />
           </Row>
-          <Muted>Le matin est fait quand</Muted>
-          <Row>
-            {(Object.keys(MORNING_CRITERIA_LABELS) as MorningCriteria[]).map((k) => (
-              <Chip key={k} label={MORNING_CRITERIA_LABELS[k]} selected={settings.criteria === k} onPress={() => onChange({ ...settings, criteria: k })} style={{ flex: 1 }} />
-            ))}
+          <Muted>Le matin est fait quand tout ceci est coché</Muted>
+          <Row style={{ flexWrap: 'wrap' }}>
+            {(Object.keys(MORNING_STEP_LABELS) as MorningStep[]).map((k) => {
+              const on = settings.steps.includes(k);
+              return (
+                <Chip
+                  key={k}
+                  label={MORNING_STEP_LABELS[k]}
+                  selected={on}
+                  onPress={() => onChange({ ...settings, steps: on ? settings.steps.filter((x) => x !== k) : [...settings.steps, k] })}
+                />
+              );
+            })}
           </Row>
+          {habits.length ? (
+            <>
+              <Muted>Habitudes du matin</Muted>
+              <Row style={{ flexWrap: 'wrap' }}>
+                {habits.map((h) => {
+                  const on = settings.habits.includes(h.id);
+                  return (
+                    <Chip
+                      key={h.id}
+                      label={h.name}
+                      selected={on}
+                      onPress={() => onChange({ ...settings, habits: on ? settings.habits.filter((x) => x !== h.id) : [...settings.habits, h.id] })}
+                    />
+                  );
+                })}
+              </Row>
+            </>
+          ) : null}
+          {!settings.steps.length && !settings.habits.some((id) => habits.some((h) => h.id === id)) ? (
+            <Text style={{ color: c.warn, fontSize: 13 }}>Rien de coché : le rappel ne s’affichera pas.</Text>
+          ) : null}
           <Muted>Notification</Muted>
           <Row>
             <Chip label="Permanente" selected={settings.sticky} onPress={() => onChange({ ...settings, sticky: true })} style={{ flex: 1 }} />

@@ -9,7 +9,7 @@ const t = (name: string, fn: () => void) => {
   console.log("ok -", name);
 };
 
-const empty = (): Data => ({ habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {} });
+const empty = (): Data => ({ habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {}, morning: {}, plans: {} });
 
 t("dates", () => {
   assert.equal(L.mondayOf("2026-11-23"), "2026-11-23"); // lundi
@@ -163,17 +163,18 @@ console.log(`${passed} groupes au total (avec rappels)`);
 
 t("rappel du matin", () => {
   const m = { ...L.DEFAULT_MORNING, enabled: true };
+  const plan = { ...m, steps: ["sleep", "plan"] as L.MorningStep[] };
   const d = empty();
   const now = new Date(2026, 10, 23, 7, 0);
   assert.equal(L.plannedMorning(d, m, now, 2).length, 2);
-  assert.match(L.morningMessage(d, "2026-11-23").body, /Rien de prévu/);
+  assert.match(L.morningMessage(d, "2026-11-23", m).body, /nuit notée/);
   d.rules = [{ id: "r", title: "Travail profond", start: "09:00", end: "11:00", habitId: null, type: "weekdays", days: [], from: "2026-11-01" }];
-  assert.match(L.morningMessage(d, "2026-11-24").body, /1 créneau aujourd'hui · 1er à 09:00 Travail profond/);
+  assert.match(L.morningMessage(d, "2026-11-24", m).body, /1er créneau à 09:00 Travail profond/);
   d.sleep["2026-11-23"] = { date: "2026-11-23", bed: "23:00", wake: "07:00", quality: 3, awakenings: null };
-  assert.ok(L.isMorningDone(d, "2026-11-23", "sleep"));
-  assert.ok(L.isMorningDone(d, "2026-11-23", "sleep_plan"));
-  d.sleep["2026-11-22"] = { date: "2026-11-22", bed: "23:00", wake: "07:00", quality: 3, awakenings: null };
-  assert.ok(!L.isMorningDone(d, "2026-11-22", "sleep_plan")); // dimanche : pas de créneau en semaine
+  assert.ok(L.isMorningDone(d, "2026-11-23", m));
+  assert.ok(!L.isMorningDone(d, "2026-11-23", plan)); // planning pas validé
+  d.plans["2026-11-23"] = "2026-11-23 07:30:00";
+  assert.ok(L.isMorningDone(d, "2026-11-23", plan));
   assert.equal(L.plannedMorning(d, m, now, 2)[0].day, "2026-11-24");
   assert.deepEqual(L.parseMorningSettings({ morning_enabled: "1", morning_sticky: "0" }), { ...L.DEFAULT_MORNING, enabled: true, sticky: false });
 });
@@ -226,3 +227,54 @@ t("bilan de challenge", () => {
   assert.equal(ng.periodStart, "2026-11-23");
 });
 console.log(`${passed} groupes au total (avec bilan)`);
+
+t("routine du matin configurable", () => {
+  // Ancien réglage repris, puis nouveau format.
+  assert.deepEqual(L.parseMorningSettings({ morning_criteria: "sleep_plan" }).steps, ["sleep", "plan"]);
+  assert.deepEqual(L.parseMorningSettings({}).steps, ["sleep"]);
+  const m = { ...L.DEFAULT_MORNING, enabled: true, steps: ["sleep", "plan", "journal"] as L.MorningStep[], habits: ["h", "gone"] };
+  const back = L.parseMorningSettings(L.serializeMorningSettings(m));
+  assert.deepEqual(back, m);
+  assert.deepEqual(L.parseMorningSettings({ morning_steps: "pas du json" }).steps, ["sleep"]);
+
+  const d = empty();
+  const day = "2026-11-24";
+  d.habits = [{ id: "h", name: "Étirements", perWeek: 7 }];
+  // "gone" n'existe pas : ignorée.
+  assert.equal(L.morningChecklist(d, day, m).length, 4);
+  assert.equal(L.isMorningDone(d, day, m), false);
+  d.sleep[day] = { date: day, bed: "23:00", wake: "07:00", quality: 3, awakenings: 0 };
+  d.plans[day] = "2026-11-24 07:30:00";
+  d.morning[day] = { date: day, mood: 3, energy: null, note: "" };
+  assert.equal(L.isMorningDone(d, day, m), false);
+  assert.match(L.morningMessage(d, day, m).body, /étirements/);
+  d.checks[day] = ["h"];
+  assert.equal(L.isMorningDone(d, day, m), true);
+  // Aucune étape : rien à rappeler.
+  assert.equal(L.isMorningDone(empty(), day, { ...m, steps: [], habits: [] }), true);
+  // Pas de rappel programmé pour un matin déjà fait.
+  assert.equal(L.plannedMorning(d, { ...m, time: "08:00" }, new Date(2026, 10, 24, 6, 0), 1).length, 0);
+});
+
+t("humeur matin → soir", () => {
+  const d = empty();
+  d.habits = [{ id: "s", name: "Sport", perWeek: 3 }];
+  const days = L.range("2026-11-10", "2026-11-23");
+  days.forEach((k, i) => {
+    const dropDay = i % 2 === 0;
+    d.morning[k] = { date: k, mood: 3, energy: dropDay ? 1 : 3, note: "" };
+    d.journal[k] = { date: k, mood: dropDay ? 1 : 3, energy: null, text: dropDay ? "#réunions" : "" };
+    if (!dropDay) d.checks[k] = ["s"];
+  });
+  assert.equal(L.moodShift(d, days[0]), -2);
+  const s = L.computeDayShift(d, "2026-11-23")!;
+  assert.equal(s.days, 14);
+  assert.equal(s.drops, 7);
+  assert.equal(s.stable, 7);
+  assert.ok(s.average < 0);
+  assert.ok(s.causes.some((c) => c.text.includes("#réunions")));
+  assert.ok(s.causes.some((c) => c.text.includes("Sport")));
+  assert.ok(s.causes.some((c) => c.text.includes("énergie du matin")));
+  assert.equal(L.computeDayShift(empty(), "2026-11-23"), null);
+});
+console.log(`${passed} groupes au total (avec matin)`);

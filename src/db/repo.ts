@@ -7,6 +7,7 @@ import type {
   Habit,
   JournalEntry,
   Mood,
+  MorningEntry,
   RecurringRule,
   SleepEntry,
   Slot,
@@ -57,11 +58,13 @@ type GoalRow = {
   end_date: string | null;
 };
 type SleepRow = { date: string; bed_time: string; wake_time: string; quality: number | null; awakenings: number | null };
+type MorningRow = { date: string; mood: number | null; energy: number | null; note: string };
+type PlanRow = { date: string; validated_at: string };
 type ReviewRow = { week_start: string; good: string; hard: string; change: string };
 
 /** Charge toutes les données nécessaires aux calculs. */
 export async function loadData(db: SQLiteDatabase): Promise<Data> {
-  const [habits, checks, rules, slots, journal, goals, reviews, sleep] = await Promise.all([
+  const [habits, checks, rules, slots, journal, goals, reviews, sleep, morning, plans] = await Promise.all([
     db.getAllAsync<HabitRow>('SELECT id, name, per_week, archived FROM habits ORDER BY created_at'),
     db.getAllAsync<CheckRow>('SELECT habit_id, date FROM habit_checks'),
     db.getAllAsync<RuleRow>('SELECT * FROM recurring_rules'),
@@ -70,9 +73,11 @@ export async function loadData(db: SQLiteDatabase): Promise<Data> {
     db.getAllAsync<GoalRow>('SELECT * FROM goals WHERE archived = 0 ORDER BY created_at'),
     db.getAllAsync<ReviewRow>('SELECT week_start, good, hard, change FROM weekly_reviews'),
     db.getAllAsync<SleepRow>('SELECT date, bed_time, wake_time, quality, awakenings FROM sleep_entries'),
+    db.getAllAsync<MorningRow>('SELECT date, mood, energy, note FROM morning_entries'),
+    db.getAllAsync<PlanRow>('SELECT date, validated_at FROM day_plans'),
   ]);
 
-  const data: Data = { habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {} };
+  const data: Data = { habits: [], checks: {}, rules: [], slots: {}, journal: {}, goals: [], reviews: {}, sleep: {}, morning: {}, plans: {} };
 
   data.habits = habits.map(
     (h): Habit => ({ id: h.id, name: h.name, perWeek: h.per_week, archived: h.archived === 1 }),
@@ -142,6 +147,10 @@ export async function loadData(db: SQLiteDatabase): Promise<Data> {
       quality: n.quality as SleepEntry['quality'],
       awakenings: n.awakenings,
     };
+
+  for (const m of morning)
+    data.morning[m.date] = { date: m.date, mood: m.mood as Mood | null, energy: m.energy as Energy | null, note: m.note } satisfies MorningEntry;
+  for (const p of plans) data.plans[p.date] = p.validated_at;
 
   return data;
 }

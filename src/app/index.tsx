@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AddHabitSheet, AddSlotSheet, ManageHabitsSheet, SlotDetailSheet, type NewSlot } from '@/components/today/sheets';
 import { HabitsCard } from '@/components/today/habits-card';
-import { JournalCard } from '@/components/today/journal-card';
+import { JournalCard, MorningMoodCard } from '@/components/today/journal-card';
+import { RoutineCard } from '@/components/today/routine-card';
 import { ScheduleCard } from '@/components/today/schedule-card';
 import { SleepCard } from '@/components/today/sleep-card';
 import { Card, IconButton, Muted, Screen, TextButton } from '@/components/ui';
@@ -18,9 +19,11 @@ import {
   deleteSlot,
   ensureOccurrences,
   saveJournal,
+  saveMorning,
   saveSleep,
   saveSlotNote,
   setHabitChecked,
+  setPlanValidated,
   setSlotDone,
   stopRule,
   updateHabit,
@@ -28,7 +31,7 @@ import {
 } from '@/db/actions';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { addDays, brokenStreaks, fromKey, isChallengeEnded, mondayOf, sameDayLastYear, type RecurringRule, type Slot } from '@/logic';
+import { addDays, brokenStreaks, fromKey, isChallengeEnded, mondayOf, morningChecklist, parseMorningSettings, sameDayLastYear, type RecurringRule, type Slot } from '@/logic';
 import { loadSettings } from '@/db/settings';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -99,6 +102,11 @@ export default function TodayScreen() {
     : [];
   const showReview = isToday && fromKey(today).getDay() === 0 && !data.reviews[mondayOf(today)]?.change;
 
+  const morning = parseMorningSettings(settings);
+  const routine = isToday && morning.enabled ? morningChecklist(data, day, morning) : [];
+  const showRoutine = routine.length > 0 && routine.some((i) => !i.done);
+  const showMorningMood = day <= today && (morning.steps.includes('journal') || !!data.morning[day]);
+
   const lyKey = sameDayLastYear(day);
   const lastYear = data.journal[lyKey];
 
@@ -138,6 +146,8 @@ export default function TodayScreen() {
           </View>
         ) : null}
 
+        {showRoutine ? <RoutineCard items={routine} onToggleHabit={(id, on) => run(() => setHabitChecked(db, day, id, on))} /> : null}
+
         {day <= today ? (
           <SleepCard
             day={day}
@@ -149,6 +159,8 @@ export default function TodayScreen() {
           />
         ) : null}
 
+        {showMorningMood ? <MorningMoodCard day={day} entry={data.morning[day]} onSave={(e) => run(() => saveMorning(db, day, e))} /> : null}
+
         <ScheduleCard
           data={data}
           day={day}
@@ -156,6 +168,8 @@ export default function TodayScreen() {
           onToggle={(s) => run(() => setSlotDone(db, s, !s.done))}
           onOpen={(s) => setDetailId(s.id)}
           onAdd={() => setAdding(true)}
+          validated={!!data.plans[day]}
+          onValidate={(morning.steps.includes('plan') && day >= today) || data.plans[day] ? (on) => run(() => setPlanValidated(db, day, on)) : undefined}
         />
 
         <HabitsCard
@@ -167,7 +181,12 @@ export default function TodayScreen() {
           onManage={() => setManaging(true)}
         />
 
-        <JournalCard day={day} entry={data.journal[day]} onSave={(e) => run(() => saveJournal(db, day, e))} />
+        <JournalCard
+          day={day}
+          title={showMorningMood ? 'Ce soir' : 'Journal'}
+          entry={data.journal[day]}
+          onSave={(e) => run(() => saveJournal(db, day, e))}
+        />
 
         {lastYear && (lastYear.text || lastYear.mood !== null) ? (
           <Card title="Il y a un an" right={<Muted>{fromKey(lyKey).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</Muted>}>

@@ -236,3 +236,22 @@ export async function saveSleep(
 export async function deleteSleep(db: SQLiteDatabase, date: DayKey) {
   await db.runAsync('DELETE FROM sleep_entries WHERE date = ?', date);
 }
+
+// ——— Matin ———
+
+export async function saveMorning(db: SQLiteDatabase, date: DayKey, e: { mood: Mood | null; energy: Energy | null; note: string }) {
+  await db.runAsync(
+    `INSERT INTO morning_entries (date, mood, energy, note) VALUES (?, ?, ?, ?)
+     ON CONFLICT(date) DO UPDATE SET mood = excluded.mood, energy = excluded.energy, note = excluded.note, updated_at = datetime('now')`,
+    date,
+    e.mood,
+    e.energy,
+    e.note,
+  );
+}
+
+/** Valide (ou dé-valide) le planning du jour. */
+export async function setPlanValidated(db: SQLiteDatabase, date: DayKey, on: boolean) {
+  if (on) await db.runAsync("INSERT OR REPLACE INTO day_plans (date, validated_at) VALUES (?, datetime('now', 'localtime'))", date);
+  else await db.runAsync('DELETE FROM day_plans WHERE date = ?', date);
+}

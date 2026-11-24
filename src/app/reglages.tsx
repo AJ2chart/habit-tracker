@@ -13,6 +13,7 @@ import {
   DEFAULT_MORNING,
   DEFAULT_REMINDER,
   parseMorningSettings,
+  serializeMorningSettings,
   parseReminderSettings,
   type MorningSettings,
   type ReminderSettings,
@@ -65,18 +66,13 @@ export default function SettingsScreen() {
 
   const changeMorning = async (m: MorningSettings) => {
     setMorning(m);
-    await saveSettings(db, {
-      morning_enabled: m.enabled ? '1' : '0',
-      morning_time: m.time,
-      morning_sticky: m.sticky ? '1' : '0',
-      morning_criteria: m.criteria,
-    });
+    await saveSettings(db, serializeMorningSettings(m));
     await reload(); // reprogramme les rappels
   };
 
   return (
     <Screen title="Réglages">
-      <MorningCard settings={morning} onChange={(m) => void changeMorning(m)} />
+      <MorningCard settings={morning} habits={(data?.habits ?? []).filter((h) => !h.archived)} onChange={(m) => void changeMorning(m)} />
 
       <ReminderCard settings={reminder} onChange={(r) => void changeReminder(r)} />
 

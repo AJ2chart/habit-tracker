@@ -83,6 +83,8 @@ async function main() {
       CREATE TABLE goals (id TEXT PRIMARY KEY, title TEXT, end_date TEXT);
       CREATE TABLE weekly_reviews (week_start TEXT PRIMARY KEY, good TEXT);
       CREATE TABLE sleep_entries (date TEXT PRIMARY KEY, bed_time TEXT, wake_time TEXT, quality INTEGER, awakenings INTEGER);
+      CREATE TABLE morning_entries (date TEXT PRIMARY KEY, mood INTEGER, energy INTEGER, note TEXT);
+      CREATE TABLE day_plans (date TEXT PRIMARY KEY, validated_at TEXT);
       CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT);
       PRAGMA user_version = 2;`;
     src.raw.exec(schema);
@@ -90,7 +92,9 @@ async function main() {
       INSERT INTO habit_checks (habit_id, date) VALUES ('h1', '2026-11-23');
       INSERT INTO journal_entries VALUES ('2026-11-23', 3, 2, 'Bonne journée #travail');
       INSERT INTO goals VALUES ('g1', 'Lire', NULL);
-      INSERT INTO sleep_entries VALUES ('2026-11-23', '23:15', '07:05', 3, 1);`);
+      INSERT INTO sleep_entries VALUES ('2026-11-23', '23:15', '07:05', 3, 1);
+      INSERT INTO morning_entries VALUES ('2026-11-23', 2, 1, 'Fatigué');
+      INSERT INTO day_plans VALUES ('2026-11-23', '2026-11-23 07:40:00');`);
     const dump = await dumpDatabase(src as never);
     const file = await encryptBackup(JSON.stringify(dump), "motdepasse", rnd, 1000);
 
@@ -101,6 +105,16 @@ async function main() {
     assert.deepEqual(dst.raw.prepare("SELECT id, name FROM habits").all().map((r) => ({ ...r })), [{ id: "h1", name: "Méditation" }]);
     assert.equal((dst.raw.prepare("SELECT text FROM journal_entries").get() as { text: string }).text, "Bonne journée #travail");
     assert.equal((dst.raw.prepare("SELECT wake_time FROM sleep_entries").get() as { wake_time: string }).wake_time, "07:05");
+
+    assert.equal((dst.raw.prepare("SELECT note FROM morning_entries").get() as { note: string }).note, "Fatigué");
+    assert.equal(dst.raw.prepare("SELECT COUNT(*) AS n FROM day_plans").get()!.n, 1);
+
+    // Ancienne base sans les tables du matin : export possible, restauration qui les ignore.
+    const old = fakeDb();
+    old.raw.exec(schema.replace(/CREATE TABLE (morning_entries|day_plans)[^;]*;/g, ""));
+    const oldDump = await dumpDatabase(old as never);
+    assert.equal(oldDump.tables.morning_entries, undefined);
+    await restoreDatabase(old as never, dump);
 
     // Sauvegarde plus récente que l'appli : refusée, données intactes.
     await assert.rejects(restoreDatabase(dst as never, { ...dump, schemaVersion: 99 }));

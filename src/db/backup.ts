@@ -10,6 +10,8 @@ export const BACKUP_TABLES = [
   'goals',
   'weekly_reviews',
   'sleep_entries',
+  'morning_entries',
+  'day_plans',
   'settings',
 ] as const;
 
@@ -20,11 +22,18 @@ export interface Dump {
   tables: Record<string, Record<string, unknown>[]>;
 }
 
+async function tableExists(db: SQLiteDatabase, t: string) {
+  return !!(await db.getFirstAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", t));
+}
+
 /** Copie complète des données, prête à être chiffrée. */
 export async function dumpDatabase(db: SQLiteDatabase): Promise<Dump> {
   const v = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const tables: Dump['tables'] = {};
-  for (const t of BACKUP_TABLES) tables[t] = await db.getAllAsync<Record<string, unknown>>(`SELECT * FROM ${t}`);
+  for (const t of BACKUP_TABLES) {
+    if (!(await tableExists(db, t))) continue;
+    tables[t] = await db.getAllAsync<Record<string, unknown>>(`SELECT * FROM ${t}`);
+  }
   return { app: 'habit-tracker', schemaVersion: v?.user_version ?? 0, exportedAt: new Date().toISOString(), tables };
 }
 
@@ -47,6 +56,7 @@ export async function restoreDatabase(db: SQLiteDatabase, dump: Dump) {
   await db.withTransactionAsync(async () => {
     for (const t of BACKUP_TABLES) {
       const cols = (await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${t})`)).map((c) => c.name);
+      if (!cols.length) continue; // table absente de cette base
       await db.runAsync(`DELETE FROM ${t}`);
       for (const row of dump.tables[t] ?? []) {
         const keys = Object.keys(row).filter((k) => cols.includes(k));
