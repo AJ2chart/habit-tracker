@@ -1,4 +1,4 @@
-# Habit tracker
+# Carnet d'aube
 
 Appli mobile de journal, de suivi d'habitudes et d'emploi du temps, avec objectifs hebdomadaires, mensuels et annuels.
 

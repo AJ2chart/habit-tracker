@@ -67,7 +67,7 @@ export function CustomTabList(props: TabListProps) {
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
         <ThemedText type="smallBold" style={styles.brandText}>
-          Habit tracker
+          Carnet d'aube
         </ThemedText>
 
         {props.children}
