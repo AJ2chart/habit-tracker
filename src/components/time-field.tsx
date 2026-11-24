@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -34,31 +34,47 @@ function stepTime(value: string, dir: 1 | -1, step = STEP): string {
   return shiftTime('00:00', snapped);
 }
 
-/** Bouton −/+ : un appui = un pas ; garder le doigt dessus fait défiler. */
+/** Nombre maximal de pas d'affilée en gardant le doigt appuyé (10 h) : filet de sécurité. */
+const MAX_REPEAT = 40;
+
+/**
+ * Bouton −/+ : un appui = un pas ; garder le doigt dessus fait défiler.
+ * Une seule boucle à la fois, arrêtée au relâcher, à l'interruption du geste,
+ * au démontage, et dans tous les cas au bout de MAX_REPEAT pas.
+ */
 function StepButton({ dir, label, onStep }: { dir: 1 | -1; label: string; onStep: (dir: 1 | -1) => void }) {
   const c = useTheme();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Numéro du geste en cours : une boucle d'un ancien geste s'arrête d'elle-même. */
+  const gesture = useRef(0);
   const latest = useRef(onStep);
   latest.current = onStep;
 
-  const stop = () => {
+  const stop = useRef(() => {
+    gesture.current++;
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
-  };
-  useEffect(() => stop, []);
+  }).current;
+  useEffect(() => stop, [stop]);
 
-  const repeat = () => {
+  const start = () => {
+    stop();
+    const id = gesture.current;
+    let count = 0;
     latest.current(dir);
-    timer.current = setTimeout(repeat, REPEAT_EVERY);
+    const tick = () => {
+      if (gesture.current !== id || ++count > MAX_REPEAT) return stop();
+      latest.current(dir);
+      timer.current = setTimeout(tick, REPEAT_EVERY);
+    };
+    timer.current = setTimeout(tick, HOLD_DELAY);
   };
 
   return (
     <Pressable
-      onPressIn={() => {
-        latest.current(dir);
-        timer.current = setTimeout(repeat, HOLD_DELAY);
-      }}
+      onPressIn={start}
       onPressOut={stop}
+      onBlur={stop}
       hitSlop={6}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -80,6 +96,11 @@ export function TimeField({ label, value, onChange }: { label: string; value: st
   latest.current = value;
 
   const step = (dir: 1 | -1) => {
+    // Utiliser −/+ quitte la saisie au clavier.
+    if (typing) {
+      setTyping(false);
+      Keyboard.dismiss();
+    }
     const next = stepTime(latest.current, dir);
     latest.current = next;
     onChange(next);
