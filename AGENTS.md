@@ -44,7 +44,10 @@ Docs: https://docs.expo.dev/eas/index.md
 
 Problème déjà rencontré plusieurs fois (Gleamvault, Carnet d'aube) : sur Android en plein écran, le système ne pousse pas le contenu au-dessus du clavier, qui recouvre le champ touché.
 
-- Tout champ de saisie doit vivre dans un `Screen` ou une `Sheet` (`src/components/ui.tsx`). Ces deux conteneurs gèrent le clavier pour tous leurs champs via `useKeepFocusedInputVisible` (`src/hooks/use-keyboard.ts`) : marge du bas égale à la hauteur du clavier, puis défilement jusqu'au champ, à l'ouverture du clavier **et** quand le focus passe à un autre champ clavier ouvert.
+- Tout champ de saisie doit vivre dans un `Screen` ou une `Sheet` (`src/components/ui.tsx`).
+  - `Screen` utilise `KeyboardAwareScrollView` de **react-native-keyboard-controller** (le `KeyboardProvider` est posé dans `src/app/_layout.tsx`) : défilement natif jusqu'au champ qui a le focus, y compris quand on passe d'un champ à l'autre ou qu'un champ apparaît au toucher. `bottomOffset` laisse la place à la barre de suggestions du clavier.
+  - `Sheet` (fenêtre `Modal`) remonte au-dessus du clavier et garde le champ visible via `useKeepFocusedInputVisible` (`src/hooks/use-keyboard.ts`).
+  - Une première version maison (défilement calculé à l'ouverture du clavier) ne suffisait pas : ne pas y revenir pour les écrans.
 - Ne pas ajouter de `KeyboardAvoidingView` ni de défilement maison dans un composant : ça entre en conflit avec ce mécanisme.
 - Un champ qui apparaît au toucher (édition en place, `autoFocus`) est couvert par le mécanisme : ne rien ajouter.
 - Avant de livrer un écran avec des champs, vérifier : champ en bas de l'écran, champ en bas d'une feuille, passage d'un champ à l'autre clavier ouvert, champ qui apparaît au toucher.

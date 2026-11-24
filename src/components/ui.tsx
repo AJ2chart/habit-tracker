@@ -1,4 +1,4 @@
-import { createContext, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { createContext, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import {
   Dimensions,
   Modal,
@@ -13,6 +13,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -41,26 +42,15 @@ export function Screen({
 }) {
   const c = useTheme();
   const centered = !!(left || right);
-  const insets = useSafeAreaInsets();
-  const kbRaw = useKeyboardHeight();
-  const kb = kbRaw ? kbRaw + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
-  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
-  const offset = useRef(0);
   const [locked, setLocked] = useState(false);
-
-  // Garde le champ en cours de saisie visible au-dessus du clavier (voir le hook).
-  useKeepFocusedInputVisible(kb, scrollRef as never, offset);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: c.background }]}>
-      <ScrollView
-        ref={scrollRef}
+      {/* Défile tout seul pour garder le champ touché au-dessus du clavier (et de sa barre de suggestions). */}
+      <KeyboardAwareScrollView
+        bottomOffset={Spacing.five}
         scrollEnabled={!locked}
-        onScroll={(e) => {
-          offset.current = e.nativeEvent.contentOffset.y;
-        }}
-        scrollEventThrottle={32}
-        contentContainerStyle={[styles.scroll, kb ? { paddingBottom: kb + Spacing.five } : null]}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled">
         <ScrollLockContext.Provider value={setLocked}>
         <View style={[styles.header, centered && styles.headerRow]}>
@@ -75,7 +65,7 @@ export function Screen({
         </View>
         {children}
         </ScrollLockContext.Provider>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

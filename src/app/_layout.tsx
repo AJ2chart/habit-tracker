@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { Suspense, useEffect } from 'react';
 import { ActivityIndicator, useColorScheme, View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
@@ -44,6 +45,8 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   useOpenDayFromNotification();
   return (
+    // Gestion du clavier pour toute l'appli (voir AGENTS.md, « Clavier et champs de saisie »).
+    <KeyboardProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Suspense fallback={<Loading />}>
         {/* Base locale, chiffrée dans la version installable (en clair dans Expo Go). */}
@@ -53,5 +56,6 @@ export default function RootLayout() {
         </SQLiteProvider>
       </Suspense>
     </ThemeProvider>
+    </KeyboardProvider>
   );
 }
