@@ -16,7 +16,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { useKeyboardHeight } from '@/hooks/use-keyboard';
+import { useKeepFocusedInputVisible, useKeyboardHeight } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -48,24 +48,8 @@ export function Screen({
   const offset = useRef(0);
   const [locked, setLocked] = useState(false);
 
-  // Quand le clavier s'ouvre, fait défiler pour garder le champ en cours de saisie visible.
-  useEffect(() => {
-    if (!kb) return;
-    const t = setTimeout(
-      () => {
-        const input = TextInput.State.currentlyFocusedInput() as unknown as {
-          measureInWindow?: (cb: (x: number, y: number, w: number, h: number) => void) => void;
-        } | null;
-        input?.measureInWindow?.((_x, y, _w, h) => {
-          const visibleBottom = Dimensions.get('window').height - kb - Spacing.three;
-          const bottom = y + Math.min(h, 160);
-          if (bottom > visibleBottom) scrollRef.current?.scrollTo({ y: offset.current + bottom - visibleBottom, animated: true });
-        });
-      },
-      Platform.OS === 'android' ? 60 : 260,
-    );
-    return () => clearTimeout(t);
-  }, [kb]);
+  // Garde le champ en cours de saisie visible au-dessus du clavier (voir le hook).
+  useKeepFocusedInputVisible(kb, scrollRef as never, offset);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: c.background }]}>
@@ -262,6 +246,9 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
   const [locked, setLocked] = useState(false);
   // Sur Android plein écran, la hauteur annoncée du clavier n'inclut pas la barre de navigation du système.
   const lift = kb ? kb + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const offset = useRef(0);
+  useKeepFocusedInputVisible(lift, scrollRef as never, offset);
   return (
     <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={styles.flex}>
@@ -269,6 +256,11 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
         {/* La feuille remonte au-dessus du clavier, sur iPhone comme sur Android. */}
         <View style={[styles.sheet, { backgroundColor: c.backgroundElement, marginBottom: lift, maxHeight: lift ? Dimensions.get('window').height - lift - 48 : '85%' }]}>
           <ScrollView
+            ref={scrollRef}
+            onScroll={(e) => {
+              offset.current = e.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={32}
             keyboardShouldPersistTaps="handled"
             scrollEnabled={!locked}
             // Clavier fermé : laisse la place à la barre de navigation du téléphone (ou à la barre d'accueil de l'iPhone).

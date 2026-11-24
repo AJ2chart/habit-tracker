@@ -39,3 +39,12 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Clavier et champs de saisie (à respecter pour tout nouveau champ)
+
+Problème déjà rencontré plusieurs fois (Gleamvault, Carnet d'aube) : sur Android en plein écran, le système ne pousse pas le contenu au-dessus du clavier, qui recouvre le champ touché.
+
+- Tout champ de saisie doit vivre dans un `Screen` ou une `Sheet` (`src/components/ui.tsx`). Ces deux conteneurs gèrent le clavier pour tous leurs champs via `useKeepFocusedInputVisible` (`src/hooks/use-keyboard.ts`) : marge du bas égale à la hauteur du clavier, puis défilement jusqu'au champ, à l'ouverture du clavier **et** quand le focus passe à un autre champ clavier ouvert.
+- Ne pas ajouter de `KeyboardAvoidingView` ni de défilement maison dans un composant : ça entre en conflit avec ce mécanisme.
+- Un champ qui apparaît au toucher (édition en place, `autoFocus`) est couvert par le mécanisme : ne rien ajouter.
+- Avant de livrer un écran avec des champs, vérifier : champ en bas de l'écran, champ en bas d'une feuille, passage d'un champ à l'autre clavier ouvert, champ qui apparaît au toucher.
