@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Muted, TextButton } from '@/components/ui';
@@ -24,6 +25,21 @@ export function HabitsCard({
   const c = useTheme();
   const habits = data.habits.filter((h) => !h.archived);
   const count = habits.filter((h) => isChecked(data, day, h.id)).length;
+  const [open, setOpen] = useState(false);
+
+  // Toutes faites : une ligne de résumé, toucher pour revoir les pastilles.
+  if (habits.length > 0 && count === habits.length && !open) {
+    return (
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel="Habitudes toutes faites. Afficher le détail">
+        <Card>
+          <View style={styles.summary}>
+            <Text style={[styles.summaryLabel, { color: c.textSecondary }]}>Habitudes</Text>
+            <Text style={[styles.summaryText, { color: c.text }]}>{`${count}/${habits.length} ✓`}</Text>
+          </View>
+        </Card>
+      </Pressable>
+    );
+  }
 
   return (
     <Card
@@ -60,6 +76,9 @@ export function HabitsCard({
 }
 
 const styles = StyleSheet.create({
+  summary: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two + 2 },
+  summaryLabel: { fontSize: 13 },
+  summaryText: { fontSize: 15, fontWeight: '600' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
   add: { borderStyle: 'dashed' },

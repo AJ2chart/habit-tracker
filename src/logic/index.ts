@@ -10,3 +10,4 @@ export * from "./sleep";
 export * from "./reminders";
 export * from "./challenge";
 export * from "./dayshift";
+export * from "./tags";

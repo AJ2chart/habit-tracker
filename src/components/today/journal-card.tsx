@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Card, Chip } from '@/components/ui';
 import { EnergyLabels, MoodColors, MoodLabels, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import type { Energy, Mood, MorningEntry } from '@/logic';
+import { tagsOf, toggleTag, type Energy, type Mood, type MorningEntry } from '@/logic';
 
 type Entry = { mood: Mood | null; energy: Energy | null; text: string };
 
@@ -18,12 +18,15 @@ export function JournalCard({
   onSave,
   title = 'Journal',
   placeholder = 'Une note sur ta journée… #étiquettes',
+  tags = [],
 }: {
   day: string;
   entry: Entry | undefined;
   onSave: (e: Entry) => void;
   title?: string;
   placeholder?: string;
+  /** Étiquettes proposées sous la note, dans l'ordre */
+  tags?: string[];
 }) {
   const c = useTheme();
   const [text, setText] = useState(entry?.text ?? '');
@@ -80,7 +83,66 @@ export function JournalCard({
         accessibilityLabel={`${title} : note`}
         style={[styles.input, { color: c.text, backgroundColor: c.background, borderColor: c.line }]}
       />
+      {tags.length ? (
+        <TagPicker
+          text={text}
+          tags={tags}
+          onToggle={(tag) => {
+            const t = toggleTag(text, tag);
+            setText(t);
+            flush(t);
+          }}
+        />
+      ) : null}
     </Card>
+  );
+}
+
+/** Nombre d'étiquettes visibles avant « + ». */
+const VISIBLE_TAGS = 8;
+
+/**
+ * Étiquettes à toucher pour les ajouter à la note (ou les retirer). Celles déjà dans la note
+ * passent devant, en surbrillance ; « + » montre toutes les autres.
+ */
+function TagPicker({ text, tags, onToggle }: { text: string; tags: string[]; onToggle: (tag: string) => void }) {
+  const c = useTheme();
+  const [all, setAll] = useState(false);
+  const used = tagsOf(text);
+  const rest = tags.filter((t) => !used.includes(t.toLowerCase()));
+  const shown = all ? rest : rest.slice(0, Math.max(0, VISIBLE_TAGS - used.length));
+  const hidden = rest.length - shown.length;
+  const pill = (tag: string, on: boolean) => (
+    <Pressable
+      key={tag}
+      onPress={() => onToggle(tag)}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={on ? `Retirer l'étiquette ${tag}` : `Ajouter l'étiquette ${tag}`}
+      hitSlop={4}
+      style={({ pressed }) => [
+        styles.tag,
+        { borderColor: on ? c.text : c.line, backgroundColor: on ? c.backgroundSelected : 'transparent' },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <Text style={[styles.tagText, { color: on ? c.text : c.textSecondary }]}>{`#${tag}`}</Text>
+    </Pressable>
+  );
+  return (
+    <View style={styles.tags}>
+      {used.map((t) => pill(t, true))}
+      {shown.map((t) => pill(t, false))}
+      {hidden > 0 || all ? (
+        <Pressable
+          onPress={() => setAll(!all)}
+          accessibilityRole="button"
+          accessibilityLabel={all ? 'Moins d’étiquettes' : `${hidden} autres étiquettes`}
+          hitSlop={4}
+          style={[styles.tag, { borderColor: c.line, borderStyle: 'dashed' }]}>
+          <Text style={[styles.tagText, { color: c.textSecondary }]}>{all ? 'Moins' : `+ ${hidden}`}</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -88,7 +150,17 @@ export function JournalCard({
  * Humeur du matin : le journal en version courte. Une ligne de résumé une fois notée
  * (toucher pour modifier), sinon humeur, énergie et une note facultative.
  */
-export function MorningMoodCard({ day, entry, onSave }: { day: string; entry: MorningEntry | undefined; onSave: (e: { mood: Mood | null; energy: Energy | null; note: string }) => void }) {
+export function MorningMoodCard({
+  day,
+  entry,
+  onSave,
+  tags,
+}: {
+  day: string;
+  entry: MorningEntry | undefined;
+  onSave: (e: { mood: Mood | null; energy: Energy | null; note: string }) => void;
+  tags?: string[];
+}) {
   const c = useTheme();
   const [editing, setEditing] = useState(entry?.mood == null);
   useEffect(() => {
@@ -119,6 +191,7 @@ export function MorningMoodCard({ day, entry, onSave }: { day: string; entry: Mo
       day={day}
       title="Ce matin"
       placeholder="Une intention pour la journée… (facultatif)"
+      tags={tags}
       entry={entry ? { mood: entry.mood, energy: entry.energy, text: entry.note } : undefined}
       onSave={(e) => onSave({ mood: e.mood, energy: e.energy, note: e.text })}
     />
@@ -126,6 +199,9 @@ export function MorningMoodCard({ day, entry, onSave }: { day: string; entry: Mo
 }
 
 const styles = StyleSheet.create({
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tag: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  tagText: { fontSize: 13, fontWeight: '500' },
   summary: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   summaryText: { fontSize: 15 },
   row: { flexDirection: 'row', gap: 6 },

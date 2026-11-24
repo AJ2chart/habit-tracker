@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AddHabitSheet, AddSlotSheet, ManageHabitsSheet, SlotDetailSheet, type NewSlot } from '@/components/today/sheets';
 import { HabitsCard } from '@/components/today/habits-card';
 import { JournalCard, MorningMoodCard } from '@/components/today/journal-card';
+import { NowCard } from '@/components/today/now-card';
 import { RoutineCard } from '@/components/today/routine-card';
 import { ScheduleCard } from '@/components/today/schedule-card';
 import { SleepCard } from '@/components/today/sleep-card';
@@ -31,7 +32,7 @@ import {
 } from '@/db/actions';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { addDays, brokenStreaks, fromKey, isChallengeEnded, mondayOf, morningChecklist, parseMorningSettings, sameDayLastYear, type RecurringRule, type Slot } from '@/logic';
+import { addDays, brokenStreaks, fromKey, isChallengeEnded, mondayOf, morningChecklist, nowHM, parseMorningSettings, sameDayLastYear, suggestTags, type RecurringRule, type Slot } from '@/logic';
 import { loadSettings } from '@/db/settings';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -46,6 +47,8 @@ export default function TodayScreen() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
+  /** Afficher la carte du soir avant 17 h (sur demande) */
+  const [writeEarly, setWriteEarly] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>({});
   useEffect(() => {
     void loadSettings(db).then(setSettings);
@@ -107,6 +110,70 @@ export default function TodayScreen() {
   const showRoutine = routine.length > 0 && routine.some((i) => !i.done);
   const showMorningMood = day <= today && (morning.steps.includes('journal') || !!data.morning[day]);
 
+  const tags = suggestTags(data);
+  // Après 17 h (ou un autre jour), le soir passe devant ; avant, la journée commence par le matin.
+  const evening = day < today || (isToday && new Date().getHours() >= 17);
+  const showEvening = day < today || (isToday && (evening || writeEarly || !!data.journal[day]));
+
+  const cardViews: Record<string, ReactNode> = {
+    routine: showRoutine ? <RoutineCard items={routine} onToggleHabit={(id, on) => run(() => setHabitChecked(db, day, id, on))} /> : null,
+    now: isToday ? (
+      <NowCard slots={data.slots[day] ?? []} now={nowHM()} onOpen={(s) => setDetailId(s.id)} onToggle={(s) => run(() => setSlotDone(db, s, true))} />
+    ) : null,
+    sleep:
+      day <= today ? (
+        <SleepCard
+          day={day}
+          isToday={isToday}
+          entry={data.sleep[day]}
+          previous={Object.keys(data.sleep).filter((k) => k < day).sort().map((k) => data.sleep[k]).pop()}
+          onSave={(n) => run(() => saveSleep(db, { date: day, ...n }))}
+          onDelete={() => run(() => deleteSleep(db, day))}
+        />
+      ) : null,
+    morning: showMorningMood ? <MorningMoodCard key={day} day={day} entry={data.morning[day]} tags={tags} onSave={(e) => run(() => saveMorning(db, day, e))} /> : null,
+    schedule: (
+      <ScheduleCard
+        key={day}
+        data={data}
+        day={day}
+        isToday={isToday}
+        onToggle={(s) => run(() => setSlotDone(db, s, !s.done))}
+        onOpen={(s) => setDetailId(s.id)}
+        onAdd={() => setAdding(true)}
+        validated={!!data.plans[day]}
+        onValidate={(morning.steps.includes('plan') && day >= today) || data.plans[day] ? (on) => run(() => setPlanValidated(db, day, on)) : undefined}
+      />
+    ),
+    habits: (
+      <HabitsCard
+        key={day}
+        data={data}
+        day={day}
+        today={today}
+        onToggle={(id, on) => run(() => setHabitChecked(db, day, id, on))}
+        onAdd={() => setAddingHabit(true)}
+        onManage={() => setManaging(true)}
+      />
+    ),
+    evening: showEvening ? (
+      <JournalCard
+        day={day}
+        title={showMorningMood ? 'Ce soir' : 'Journal'}
+        entry={data.journal[day]}
+        tags={tags}
+        onSave={(e) => run(() => saveJournal(db, day, e))}
+      />
+    ) : isToday ? (
+      <View style={{ alignItems: 'center' }}>
+        <TextButton label="Écrire dans le journal du soir" onPress={() => setWriteEarly(true)} />
+      </View>
+    ) : null,
+  };
+  const cards = evening
+    ? ['now', 'evening', 'habits', 'schedule', 'routine', 'sleep', 'morning']
+    : ['routine', 'sleep', 'morning', 'now', 'schedule', 'habits', 'evening'];
+
   const lyKey = sameDayLastYear(day);
   const lastYear = data.journal[lyKey];
 
@@ -146,48 +213,9 @@ export default function TodayScreen() {
           </View>
         ) : null}
 
-        {showRoutine ? <RoutineCard items={routine} onToggleHabit={(id, on) => run(() => setHabitChecked(db, day, id, on))} /> : null}
-
-        {day <= today ? (
-          <SleepCard
-            day={day}
-            isToday={isToday}
-            entry={data.sleep[day]}
-            previous={Object.keys(data.sleep).filter((k) => k < day).sort().map((k) => data.sleep[k]).pop()}
-            onSave={(n) => run(() => saveSleep(db, { date: day, ...n }))}
-            onDelete={() => run(() => deleteSleep(db, day))}
-          />
-        ) : null}
-
-        {showMorningMood ? <MorningMoodCard day={day} entry={data.morning[day]} onSave={(e) => run(() => saveMorning(db, day, e))} /> : null}
-
-        <ScheduleCard
-          data={data}
-          day={day}
-          isToday={isToday}
-          onToggle={(s) => run(() => setSlotDone(db, s, !s.done))}
-          onOpen={(s) => setDetailId(s.id)}
-          onAdd={() => setAdding(true)}
-          validated={!!data.plans[day]}
-          onValidate={(morning.steps.includes('plan') && day >= today) || data.plans[day] ? (on) => run(() => setPlanValidated(db, day, on)) : undefined}
-        />
-
-        <HabitsCard
-          data={data}
-          day={day}
-          today={today}
-          onToggle={(id, on) => run(() => setHabitChecked(db, day, id, on))}
-          onAdd={() => setAddingHabit(true)}
-          onManage={() => setManaging(true)}
-        />
-
-        <JournalCard
-          day={day}
-          title={showMorningMood ? 'Ce soir' : 'Journal'}
-          entry={data.journal[day]}
-          onSave={(e) => run(() => saveJournal(db, day, e))}
-        />
-
+        {cards.map((k) => (
+          <Fragment key={k}>{cardViews[k]}</Fragment>
+        ))}
         {lastYear && (lastYear.text || lastYear.mood !== null) ? (
           <Card title="Il y a un an" right={<Muted>{fromKey(lyKey).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</Muted>}>
             <Pressable style={styles.lastYear} onPress={() => setPicked(lyKey)} accessibilityRole="button" accessibilityLabel="Ouvrir cette journée">

@@ -278,3 +278,20 @@ t("humeur matin → soir", () => {
   assert.equal(L.computeDayShift(empty(), "2026-11-23"), null);
 });
 console.log(`${passed} groupes au total (avec matin)`);
+
+t("étiquettes suggérées", () => {
+  const d = empty();
+  d.journal["2026-11-20"] = { date: "2026-11-20", mood: 2, energy: null, text: "Long #Travail puis #lecture" };
+  d.journal["2026-11-21"] = { date: "2026-11-21", mood: 2, energy: null, text: "#travail encore" };
+  d.morning["2026-11-21"] = { date: "2026-11-21", mood: 2, energy: null, note: "#lecture au réveil #yoga" };
+  const s = L.suggestTags(d);
+  assert.deepEqual(s.slice(0, 3), ["lecture", "travail", "yoga"]);
+  assert.equal(s.filter((x) => L.fold(x) === "travail").length, 1); // pas de doublon avec la base
+  assert.ok(s.includes("stress"));
+  assert.equal(L.toggleTag("", "stress"), "#stress");
+  assert.equal(L.toggleTag("Journée longue ", "stress"), "Journée longue #stress");
+  assert.equal(L.toggleTag("Journée #stress longue", "stress"), "Journée longue");
+  assert.equal(L.toggleTag("#stressé mais ok", "stress"), "#stressé mais ok #stress"); // autre mot : ajoutée
+  assert.equal(L.toggleTag("Beaucoup de #Réunions", "réunions"), "Beaucoup de");
+});
+console.log(`${passed} groupes au total (avec étiquettes)`);

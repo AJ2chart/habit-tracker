@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card, Muted, TextButton } from '@/components/ui';
@@ -33,7 +34,22 @@ export function ScheduleCard({
   const done = slots.filter((s) => s.done).length;
   const now = nowHM();
   const nowIndex = isToday ? slots.findIndex((s) => s.start > now) : -2;
+  const [open, setOpen] = useState(false);
   const nowLine = <View style={[styles.now, { backgroundColor: c.goal }]} accessibilityLabel="Maintenant" />;
+
+  // Tout est fait : une ligne de résumé, toucher pour revoir le détail.
+  if (slots.length > 0 && done === slots.length && !open && (!onValidate || validated)) {
+    return (
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel="Emploi du temps terminé. Afficher le détail">
+        <Card>
+          <View style={styles.summary}>
+            <Text style={[styles.summaryLabel, { color: c.textSecondary }]}>Emploi du temps</Text>
+            <Text style={[styles.summaryText, { color: c.text }]}>{`${done}/${slots.length} ✓`}</Text>
+          </View>
+        </Card>
+      </Pressable>
+    );
+  }
 
   return (
     <Card title={slots.length ? `Emploi du temps · ${done}/${slots.length}` : 'Emploi du temps'} right={<TextButton label="+ Ajouter" onPress={onAdd} accessibilityLabel="Ajouter un créneau" />}>
@@ -94,6 +110,9 @@ const styles = StyleSheet.create({
   meta: { fontSize: 13 },
   check: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   checkMark: { fontSize: 14, fontWeight: '700' },
+  summary: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.two + 2 },
+  summaryLabel: { fontSize: 13 },
+  summaryText: { fontSize: 15, fontWeight: '600' },
   validated: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   now: { height: 2, borderRadius: 2, marginVertical: 2 },
 });
