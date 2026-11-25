@@ -1,0 +1,47 @@
+ok - dates
+ok - règles de répétition
+ok - séries et alertes
+ok - objectifs
+ok - recherche
+ok - analyse des jours difficiles
+
+6 groupes de tests réussis
+ok - objectifs : périodes et renouvellement
+
+7 groupes de tests réussis (avec périodes)
+ok - challenges
+8 groupes au total
+ok - sommeil
+9 groupes au total (avec sommeil)
+ok - rappel du soir
+10 groupes au total (avec rappels)
+ok - rappel du matin
+11 groupes au total (avec matin)
+ok - pistes de l'analyse
+12 groupes au total (avec pistes)
+ok - bilan de challenge
+13 groupes au total (avec bilan)
+ok - routine du matin configurable
+ok - humeur matin → soir
+15 groupes au total (avec matin)
+ok - étiquettes suggérées
+16 groupes au total (avec étiquettes)
+ok - notes rapides
+ok - champ d'heure : pas de 15 min
+ok - créneau en cours / ensuite
+ok - ordre de l'onglet Aujourd'hui
+ok - jour noté dans le journal
+ok - données extrêmes
+22 groupes au total
+ok - pluriels en français
+ok - migration depuis une base vide, puis relancée sans effet
+ok - migration d'une base v3 existante (données gardées)
+ok - matin, soir, planning validé et notes : enregistrés et relus
+ok - textes extrêmes et beaucoup de notes
+4 groupes de tests base de données réussis
+ok - base64
+ok - chiffrement : aller-retour, accents compris
+ok - mauvais mot de passe et fichier modifié refusés
+ok - export puis restauration de la base
+
+4 tests de sauvegarde réussis

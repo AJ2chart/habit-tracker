@@ -1,0 +1,43 @@
+Using src/app as the root directory for Expo Router.
+React Compiler enabled
+Starting Metro Bundler
+
+ WARN  Attempted to import the module "/home/runner/work/habit-tracker/habit-tracker/node_modules/@noble/hashes/crypto.js" which is not listed in the "exports" of "/home/runner/work/habit-tracker/habit-tracker/node_modules/@noble/hashes" under the requested subpath "./crypto.js". Falling back to file-based resolution. Consider updating the call site or asking the package maintainer(s) to expose this API.
+Web Bundled 29071ms node_modules/expo-router/entry.js (1348 modules)
+
+› Assets (19):
+node_modules/expo-router/assets/arrow_down.017bc6ba3fc25503e5eb5e53826d48a8.png (9.5KB)
+node_modules/expo-router/assets/error.d1ea1496f9057eb392d5bbf3732a61b7.png (469B)
+node_modules/expo-router/assets/file.19eeb73b9593a38f8e9f418337fc7d10.png (138B)
+node_modules/expo-router/assets/forward.d8b800c443b8972542883e0b9de2bdc6.png (188B)
+node_modules/expo-router/assets/pkg.ab19f4cbc543357183a20571f68380a3.png (364B)
+node_modules/expo-router/assets/react-navigation/elements/back-icon-mask.0a328cd9c1afd0afe8e3b1ec5165b1b4.png (653B)
+node_modules/expo-router/assets/react-navigation/elements/back-icon.35ba0eaec5a4f5ed12ca16fabeae451d.png (207B)
+node_modules/expo-router/assets/react-navigation/elements/clear-icon.c94f6478e7ae0cdd9f15de1fcb9e5e55.png (4 variations | 425B)
+node_modules/expo-router/assets/react-navigation/elements/close-icon.808e1b1b9b53114ec2838071a7e6daa7.png (4 variations | 235B)
+node_modules/expo-router/assets/react-navigation/elements/search-icon.286d67d3f74808a60a78d3ebf1a5fb57.png (928B)
+node_modules/expo-router/assets/sitemap.412dd9275b6b48ad28f5e3d81bb1f626.png (465B)
+node_modules/expo-router/assets/unmatched.20e71bdf79e3a97bf55fd9e164041578.png (4.8KB)
+node_modules/expo-sqlite/web/wa-sqlite/wa-sqlite.5e61fe84c4a4f49e0b1a33661b45c791.wasm (641KB)
+
+› web bundles (12):
+_expo/static/css/global-87fd0564cfa78f37afcb8d7603e15d75.css (397B)
+_expo/static/js/web/__common-d60595d192f2e9000d8775dfc836add6.js (981KB)
+_expo/static/js/web/__expo-metro-runtime-ed4c1cfa6193d76fc294130e42bd1916.js (3.5KB)
+_expo/static/js/web/_layout-8854e9319a71e35d877155ba6c98e320.js (32KB)
+_expo/static/js/web/entry-b68a6a554fa6232884f4f8e9e37f7555.js (1.1MB)
+_expo/static/js/web/index-af1de1130b5242830e59ebebf7929956.js (57KB)
+_expo/static/js/web/journal-8902a2991aafb8c8988a23da0627952d.js (28KB)
+_expo/static/js/web/objectifs-ae308e97aa4ae3dd5a1724636151d2ef.js (29KB)
+_expo/static/js/web/reglages-4089e94db7f00b047ddc2f46cc0d0187.js (108KB)
+_expo/static/js/web/semaine-3b7a468ab9492bfffafa85da1085d766.js (13KB)
+_expo/static/js/web/test-seed-91fa50eee454325ccd7489e5883adcbc.js (3KB)
+_expo/static/js/web/worker-eea2ab4323fad7fb3648e57fefe20261.js (138KB)
+
+› Files (3):
+favicon.ico (15KB)
+index.html (1.6KB)
+metadata.json (49B)
+
+Exported: dist
+Version web servie sur http://localhost:8081
