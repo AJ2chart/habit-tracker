@@ -52,8 +52,8 @@ export function RoutineCard({ items, onToggleHabit }: { items: MorningItem[]; on
 
 const styles = StyleSheet.create({
   list: { flexDirection: 'row', flexWrap: 'wrap', columnGap: Spacing.three, rowGap: Spacing.two },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32, maxWidth: '100%' },
   check: { width: 22, height: 22, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   checkMark: { fontSize: 12, fontWeight: '700' },
-  label: { fontSize: 15 },
+  label: { fontSize: 15, flexShrink: 1 },
 });

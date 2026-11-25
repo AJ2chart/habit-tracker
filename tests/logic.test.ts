@@ -378,3 +378,10 @@ t("données extrêmes", () => {
   assert.equal(L.toggleTag(long, "fatigue").endsWith("#fatigue"), true);
 });
 console.log(`${passed} groupes au total`);
+
+t("pluriels en français", () => {
+  assert.equal(L.plural(0, "créneau", "créneaux"), "0 créneau");
+  assert.equal(L.plural(1, "jour"), "1 jour");
+  assert.equal(L.plural(2, "jour"), "2 jours");
+  assert.equal(L.plural(12, "créneau", "créneaux"), "12 créneaux");
+});

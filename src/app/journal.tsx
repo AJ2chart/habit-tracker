@@ -8,7 +8,7 @@ import { Card, Chip, IconButton, Muted, Row, Screen } from '@/components/ui';
 import { MoodColors, MoodLabels, Radius, Spacing } from '@/constants/theme';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { fromKey, isBadDay, isDayNoted, search, toKey, type Data, type DayKey } from '@/logic';
+import { fromKey, isBadDay, isDayNoted, plural, search, toKey, type Data, type DayKey } from '@/logic';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const longDate = (k: string) => capitalize(fromKey(k).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
@@ -54,7 +54,7 @@ function DayEntry({ data, k, first, onTag }: { data: Data; k: DayKey; first: boo
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={[styles.entryDate, { color: c.text }]}>{longDate(k)}</Text>
-        <Muted>{`${habits} habitude${habits > 1 ? 's' : ''} · ${slots.filter((s) => s.done).length}/${slots.length} créneaux`}</Muted>
+        <Muted>{`${plural(habits, 'habitude')} · ${slots.filter((s) => s.done).length}/${plural(slots.length, 'créneau', 'créneaux')}`}</Muted>
         {j?.text ? <TaggedText text={j.text} onTag={onTag} numberOfLines={4} /> : !(data.notes[k] ?? []).length ? <Muted>Pas de note</Muted> : null}
         {(data.notes[k] ?? []).map((n) => (
           <Text key={n.id} numberOfLines={2} style={{ color: c.textSecondary, fontSize: 14 }}>

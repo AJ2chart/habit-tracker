@@ -99,6 +99,8 @@ const styles = StyleSheet.create({
     padding: Spacing.two,
   },
   innerNarrow: {
+    flexShrink: 1,
+    width: '100%',
     paddingHorizontal: Spacing.two,
     gap: 2,
     flexWrap: 'wrap',

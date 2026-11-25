@@ -43,3 +43,6 @@ export const range = (a: DayKey, b: DayKey): DayKey[] => {
   for (let k = a; k <= b; k = addDays(k, 1)) out.push(k);
   return out;
 };
+
+/** « 1 jour », « 3 jours », « 0 jour » (en français, 0 et 1 s'accordent au singulier). */
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${Math.abs(n) >= 2 ? many : one}`;

@@ -238,10 +238,11 @@ export default function GoalsScreen() {
 const styles = StyleSheet.create({
   goal: { gap: 6, paddingVertical: Spacing.two },
   level: { fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
-  title: { flex: 1, fontSize: 15 },
-  right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  nums: { fontSize: 13, fontVariant: ['tabular-nums'] },
+  // Titre et compteur : le compteur passe à la ligne s'il ne tient pas à côté du titre.
+  titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.two },
+  title: { flexGrow: 1, flexShrink: 1, flexBasis: 160, fontSize: 15 },
+  right: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, marginLeft: 'auto' },
+  nums: { fontSize: 13, fontVariant: ['tabular-nums'], flexShrink: 1 },
   bar: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4 },
   endedRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, paddingVertical: 6 },

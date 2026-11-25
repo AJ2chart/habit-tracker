@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   btnTextSmall: { fontSize: 13, fontWeight: '500' },
   iconBtn: { width: 34, height: 34, borderRadius: Radius.control, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   iconGlyph: { fontSize: 20, lineHeight: 22 },
-  chip: { borderWidth: 1, borderRadius: Radius.control, paddingVertical: 8, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  chip: { maxWidth: '100%', borderWidth: 1, borderRadius: Radius.control, paddingVertical: 8, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', gap: 4 },
   chipText: { fontSize: 12, textAlign: 'center' },
   field: { gap: 4 },
   fieldLabel: { fontSize: 13 },

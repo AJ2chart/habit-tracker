@@ -149,7 +149,7 @@ export default function WeekScreen() {
           const n = days.filter((d) => isChecked(data, d, h.id)).length;
           return (
             <View key={h.id} style={styles.gridRow}>
-              <Text style={[styles.gridName, { color: c.text }]} numberOfLines={1}>
+              <Text style={[styles.gridName, { color: c.text }]} numberOfLines={2}>
                 {h.name}
               </Text>
               {days.map((d) => {
@@ -242,10 +242,10 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12 },
   gridRow: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 3 },
   gridName: { flex: 1, fontSize: 13, paddingRight: 6 },
-  gridHead: { width: 28, textAlign: 'center', fontSize: 12 },
-  cellWrap: { width: 28, alignItems: 'center' },
+  gridHead: { width: 26, textAlign: 'center', fontSize: 12 },
+  cellWrap: { width: 26, alignItems: 'center' },
   cell: { width: 20, height: 20, borderRadius: 6 },
-  gridTotal: { width: 36, textAlign: 'right', fontSize: 12, fontVariant: ['tabular-nums'] },
+  gridTotal: { width: 30, textAlign: 'right', fontSize: 12, fontVariant: ['tabular-nums'] },
   bars: { flexDirection: 'row', gap: 6, height: 120, alignItems: 'flex-end' },
   barCol: { flex: 1, alignItems: 'center', gap: 4, height: '100%' },
   barNum: { fontSize: 10, fontVariant: ['tabular-nums'] },

@@ -25,6 +25,13 @@ async function initDatabase(db: SQLiteDatabase) {
 
 SplashScreen.preventAutoHideAsync();
 
+// Version web : coupe les mots trop longs pour leur cadre, comme le fait Android (sinon ils débordent).
+if (process.env.EXPO_OS === 'web' && typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = 'div, span { overflow-wrap: anywhere; }';
+  document.head.appendChild(style);
+}
+
 function Loading() {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

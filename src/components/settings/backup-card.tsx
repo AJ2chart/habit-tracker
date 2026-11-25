@@ -9,6 +9,7 @@ import { Spacing } from '@/constants/theme';
 import { dumpDatabase, restoreDatabase, summarize, type Dump } from '@/db/backup';
 import { useTheme } from '@/hooks/use-theme';
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { plural } from '@/logic';
 
 type Mode = 'idle' | 'export' | 'import' | 'confirm';
 const fileName = () => `habit-tracker-${new Date().toISOString().slice(0, 10)}.json`;
@@ -174,7 +175,7 @@ export function BackupCard({ db, lastBackup, onDone }: { db: SQLiteDatabase; las
       {mode === 'confirm' && s && pending ? (
         <View style={styles.block}>
           <Text style={{ color: c.text, fontSize: 15, lineHeight: 21 }}>
-            {`Sauvegarde du ${new Date(pending.exportedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} : ${s.days} jours de journal, ${s.habits} habitudes, ${s.slots} créneaux, ${s.goals} objectifs.`}
+            {`Sauvegarde du ${new Date(pending.exportedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} : ${plural(s.days, 'jour')} de journal, ${plural(s.habits, 'habitude')}, ${plural(s.slots, 'créneau', 'créneaux')}, ${plural(s.goals, 'objectif')}.`}
           </Text>
           <Text style={{ color: c.warn, fontSize: 13, lineHeight: 18 }}>
             La restauration remplace toutes les données actuelles de l’appli par celles de la sauvegarde.

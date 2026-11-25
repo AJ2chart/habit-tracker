@@ -31,6 +31,21 @@ function detect() {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   };
+  // Partie réellement visible : un ancêtre qui masque le débordement (overflow hidden/clip) coupe ce qui dépasse.
+  // Ce qui est coupé ainsi n'est pas « hors écran » : c'est le détecteur « texte coupé en silence » qui s'en charge.
+  const clipBox = (el, r) => {
+    let left = r.left;
+    let right = r.right;
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const s = getComputedStyle(p);
+      if (s.overflowX === 'hidden' || s.overflowX === 'clip') {
+        const pr = p.getBoundingClientRect();
+        left = Math.max(left, pr.left);
+        right = Math.min(right, pr.right);
+      }
+    }
+    return { left, right };
+  };
   const scrollsX = (el) => {
     for (let p = el.parentElement; p; p = p.parentElement) {
       const s = getComputedStyle(p);
@@ -53,7 +68,8 @@ function detect() {
     const r = el.getBoundingClientRect();
     const s = getComputedStyle(el);
     // 2. Bloc qui sort de l'écran.
-    if (r.right > vw + 1 || r.left < -1) out.push(['débordement bloc', `${label(el)} : ${Math.round(r.left)}→${Math.round(r.right)} (largeur ${vw})`]);
+    const vis = clipBox(el, r);
+    if (vis.right > vw + 1 || vis.left < -1) out.push(['débordement bloc', `${label(el)} : ${Math.round(r.left)}→${Math.round(r.right)} (largeur ${vw})`]);
     const hasText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
     const hidesX = s.overflowX === 'hidden' || s.overflowX === 'clip';
     const hidesY = s.overflowY === 'hidden' || s.overflowY === 'clip';
@@ -77,7 +93,8 @@ function detect() {
     const range = document.createRange();
     range.selectNodeContents(n);
     const rr = range.getBoundingClientRect();
-    if (rr.width && (rr.right > vw + 1 || rr.left < -1)) out.push(['texte hors écran', `${label(n.parentElement)} : ${Math.round(rr.left)}→${Math.round(rr.right)}`]);
+    const tv = clipBox(n.parentElement, rr);
+    if (rr.width && (tv.right > vw + 1 || tv.left < -1)) out.push(['texte hors écran', `${label(n.parentElement)} : ${Math.round(rr.left)}→${Math.round(rr.right)}`]);
   }
 
   // 6. Textes cassés.
@@ -125,7 +142,7 @@ async function selfTest(browser) {
     if (!found.some(([k]) => k === kind)) report('auto-test des détecteurs', 'détecteur aveugle', `« ${kind} » n'a pas vu son bug`);
     else ok.push(kind);
   }
-  await page.setContent('<body style="margin:0"><p>3 jours, 1 jour, 0 note, une page propre</p><div style="width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Un nom vraiment très long dans une colonne étroite</div></body>');
+  await page.setContent('<body style="margin:0"><p>3 jours, 1 jour, 0 note, une page propre</p><div style="width:100px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Un nom vraiment très long dans une colonne étroite qui continue bien au-delà de l’écran de trois cent quatre-vingt-treize pixels de large</div></body>');
   const clean = await page.evaluate(detect);
   if (clean.length) report('auto-test des détecteurs', 'faux positif', JSON.stringify(clean));
   await page.close();
@@ -232,7 +249,7 @@ async function timedPass(browser, slow) {
   const [h1, m1] = one.split(':').map(Number);
   const [h2, m2] = (await timeOf()).split(':').map(Number);
   const diff = (h2 * 60 + m2 - (h1 * 60 + m1) + 1440) % 1440;
-  if (diff < 1 || diff > 15) report(where.current, 'pas faux', `${one} → ${h2}:${m2} (${diff} min)`);
+  if (diff < 1 || diff > 15) report(where.current, 'pas faux', `${one} → ${String(h2).padStart(2, '0')}:${String(m2).padStart(2, '0')} (${diff} min)`);
 
   // b) Note du matin tapée puis « Terminé » aussitôt : elle doit être enregistrée.
   where.current = `interactions ${tag} · note du matin puis Terminé`;
@@ -260,14 +277,15 @@ async function timedPass(browser, slow) {
 
   // d) Revue de la semaine tapée puis changement d'onglet aussitôt : elle doit être gardée.
   where.current = `interactions ${tag} · revue de la semaine`;
-  await page.goto(`${BASE}/semaine`);
+  // Navigation par les onglets (comme sur le téléphone), pas par rechargement de la page.
+  await page.getByRole('link', { name: 'Semaine' }).first().click();
   await page.waitForTimeout(800);
   const good = page.getByLabel("Qu'est-ce qui a bien marché ?");
   if (await good.count()) {
     await good.first().fill('Revue tapée vite');
-    await page.goto(`${BASE}/`);
-    await waitReady(page);
-    await page.goto(`${BASE}/semaine`);
+    await page.getByRole('link', { name: /Aujourd.hui/ }).first().click();
+    await page.waitForTimeout(800);
+    await page.getByRole('link', { name: 'Semaine' }).first().click();
     await page.waitForTimeout(800);
     if ((await good.first().inputValue()) !== 'Revue tapée vite') report(where.current, 'revue perdue', 'le texte tapé juste avant de changer d’onglet a disparu');
   } else report(where.current, 'champ introuvable', 'champ « Qu’est-ce qui a bien marché ? » absent de Semaine');

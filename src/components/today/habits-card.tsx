@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card, Muted, TextButton } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { brokenStreaks, isChecked, streak, type Data } from '@/logic';
+import { brokenStreaks, isChecked, plural, streak, type Data } from '@/logic';
 
 /** Habitudes du jour en pastilles : un toucher coche ou décoche. */
 export function HabitsCard({
@@ -59,13 +59,13 @@ export function HabitsCard({
               onPress={() => onToggle(h.id, !on)}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: on }}
-              accessibilityLabel={`${h.name}${st ? `, série de ${st} jours` : ''}${isLate ? ', pas faite depuis 2 jours' : ''}`}
+              accessibilityLabel={`${h.name}${st ? `, série de ${plural(st, 'jour')}` : ''}${isLate ? ', pas faite depuis 2 jours' : ''}`}
               style={({ pressed }) => [
                 styles.pill,
                 { borderColor: on ? c.accent : isLate ? c.warn : c.line, backgroundColor: on ? c.accent : 'transparent' },
                 pressed && { opacity: 0.7 },
               ]}>
-              <Text style={[styles.name, { color: on ? c.onAccent : c.text }]}>{on ? `✓ ${h.name}` : h.name}</Text>
+              <Text numberOfLines={2} style={[styles.name, { color: on ? c.onAccent : c.text }]}>{on ? `✓ ${h.name}` : h.name}</Text>
               {isLate ? (
                 // Petit « ! » orange : pas faite depuis 2 jours (le détail est lu par le lecteur d'écran).
                 <View style={[styles.warn, { backgroundColor: c.warn }]}>
@@ -89,9 +89,10 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 13 },
   summaryText: { fontSize: 15, fontWeight: '600' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
+  // Un nom très long passe sur deux lignes au lieu de sortir de la carte.
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, maxWidth: '100%' },
   add: { borderStyle: 'dashed' },
-  name: { fontSize: 14, fontWeight: '500' },
+  name: { fontSize: 14, fontWeight: '500', flexShrink: 1 },
   streak: { fontSize: 12, opacity: 0.8 },
   warn: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   warnText: { fontSize: 11, fontWeight: '800', lineHeight: 13 },

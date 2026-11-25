@@ -36,23 +36,35 @@ function StepButton({ dir, label, onStep }: { dir: 1 | -1; label: string; onStep
   }, []);
   useEffect(() => stop, [stop]);
 
+  /** Le défilement a-t-il commencé pendant ce geste ? Sinon, le relâcher compte pour un seul pas. */
+  const repeated = useRef(false);
+
   const start = () => {
     stop();
+    repeated.current = false;
     const id = gesture.current;
     let count = 0;
-    latest.current(dir);
     const tick = () => {
       if (gesture.current !== id || ++count > MAX_REPEAT) return stop();
+      repeated.current = true;
       latest.current(dir);
       timer.current = setTimeout(tick, REPEAT_EVERY);
     };
     timer.current = setTimeout(tick, HOLD_DELAY);
   };
 
+  // Appui court : un pas (au relâcher, ce qui marche aussi quand l'appui est trop bref pour
+  // déclencher onPressIn, comme un clic sur le web). Appui long : le défilement a déjà fait les pas.
+  const single = () => {
+    if (!repeated.current) latest.current(dir);
+    repeated.current = false;
+  };
+
   return (
     <Pressable
       onPressIn={start}
       onPressOut={stop}
+      onPress={single}
       onBlur={stop}
       hitSlop={6}
       accessibilityRole="button"
