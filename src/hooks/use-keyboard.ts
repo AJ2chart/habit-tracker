@@ -31,7 +31,9 @@ type Scrollable = { scrollTo: (o: { y: number; animated?: boolean }) => void } |
  */
 export function useKeepFocusedInputVisible(lift: number, scrollRef: RefObject<Scrollable>, offset: RefObject<number>) {
   const liftRef = useRef(lift);
-  liftRef.current = lift;
+  useEffect(() => {
+    liftRef.current = lift;
+  }, [lift]);
 
   useEffect(() => {
     if (!lift) return;

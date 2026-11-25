@@ -169,12 +169,18 @@ export function Chip({
   style?: ViewStyle;
 }) {
   const c = useTheme();
+  // Le web ne sait pas réduire le texte pour qu'il tienne (adjustsFontSizeToFit) : on calcule la taille
+  // d'après la largeur du choix et le mot le plus long, pour que le rendu ressemble à celui du téléphone.
+  const [width, setWidth] = useState(0);
+  const longest = Math.max(...label.split(' ').map((w) => w.length));
+  const webSize = Platform.OS === 'web' && width ? Math.max(9, Math.min(12, (width - 10) / (longest * 0.56))) : undefined;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
       onPress={onPress}
+      onLayout={Platform.OS === 'web' ? (e) => setWidth(e.nativeEvent.layout.width) : undefined}
       style={({ pressed }) => [
         styles.chip,
         { borderColor: selected ? c.text : c.line, backgroundColor: selected ? c.backgroundSelected : 'transparent' },
@@ -184,7 +190,7 @@ export function Chip({
       {children}
       {/* Plusieurs mots : deux lignes centrées, coupées entre les mots. Un seul mot : réduit s'il ne tient pas. */}
       <Text
-        style={[styles.chipText, { color: c.text, fontWeight: selected ? '600' : '400' }]}
+        style={[styles.chipText, { color: c.text, fontWeight: selected ? '600' : '400' }, webSize ? { fontSize: webSize } : null]}
         numberOfLines={label.includes(' ') ? 2 : 1}
         adjustsFontSizeToFit
         minimumFontScale={0.75}>
@@ -298,7 +304,7 @@ const styles = StyleSheet.create({
   btnTextSmall: { fontSize: 13, fontWeight: '500' },
   iconBtn: { width: 34, height: 34, borderRadius: Radius.control, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   iconGlyph: { fontSize: 20, lineHeight: 22 },
-  chip: { borderWidth: 1, borderRadius: Radius.control, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  chip: { borderWidth: 1, borderRadius: Radius.control, paddingVertical: 8, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', gap: 4 },
   chipText: { fontSize: 12, textAlign: 'center' },
   field: { gap: 4 },
   fieldLabel: { fontSize: 13 },

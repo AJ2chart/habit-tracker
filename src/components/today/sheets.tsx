@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, Chip, Field, Muted, Row, Sheet } from '@/components/ui';
@@ -6,6 +6,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { fromKey, ruleLabel, type Data, type RecurringRule, type RuleType, type Slot } from '@/logic';
 import { TimeRange, shiftTime } from '@/components/time-field';
+import { useOnChange } from '@/hooks/use-on-change';
 
 const DAY_CHIPS: [number, string][] = [
   [1, 'L'],
@@ -56,7 +57,7 @@ export function AddSlotSheet({
   const [repeat, setRepeat] = useState<NewSlot['repeat']>('once');
   const [days, setDays] = useState<number[]>([]);
 
-  useEffect(() => {
+  useOnChange(visible ? `${day}|${rule?.id ?? ''}` : null, () => {
     if (!visible) return;
     // Par défaut : la prochaine heure pleine (aujourd'hui) ou 09:00, pour une heure.
     const now = new Date();
@@ -68,7 +69,7 @@ export function AddSlotSheet({
     setHabitId(rule?.habitId ?? null);
     setRepeat(rule?.type ?? 'once');
     setDays(rule && rule.type === 'custom' ? rule.days : [fromKey(day).getDay()]);
-  }, [visible, day, rule]);
+  });
 
   const s = start;
   const e = end;
@@ -135,7 +136,7 @@ export function AddSlotSheet({
           onPress={() => onSubmit({ title: title.trim(), start: s, end: e, habitId, repeat, days })}
         />
       </Row>
-      {rule ? <Muted>Les changements s'appliquent à partir d'aujourd'hui. Les jours passés, faits ou décrits restent tels quels.</Muted> : null}
+      {rule ? <Muted>Les changements s’appliquent à partir d’aujourd’hui. Les jours passés, faits ou décrits restent tels quels.</Muted> : null}
     </Sheet>
   );
 }
@@ -160,10 +161,10 @@ export function SlotDetailSheet({
   const c = useTheme();
   const [note, setNote] = useState('');
   const [confirmStop, setConfirmStop] = useState(false);
-  useEffect(() => {
+  useOnChange(slot?.id, () => {
     setNote(slot?.note ?? '');
     setConfirmStop(false);
-  }, [slot?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
   if (!slot) return null;
   const rule = slot.ruleId ? data.rules.find((r) => r.id === slot.ruleId) : undefined;
@@ -210,7 +211,7 @@ export function SlotDetailSheet({
           />
         </Row>
       ) : null}
-      {confirmStop ? <Muted>Les prochaines occurrences non faites disparaissent à partir d'aujourd'hui ; l'historique reste.</Muted> : null}
+      {confirmStop ? <Muted>Les prochaines occurrences non faites disparaissent à partir d’aujourd’hui ; l’historique reste.</Muted> : null}
       <Row style={{ justifyContent: 'space-between' }}>
         {!slot.ruleId ? <Button label="Supprimer" variant="ghost" onPress={onDelete} /> : <View />}
         <Button label="Terminé" onPress={close} />
@@ -230,12 +231,12 @@ export function AddHabitSheet({
 }) {
   const [name, setName] = useState('');
   const [perWeek, setPerWeek] = useState(7);
-  useEffect(() => {
+  useOnChange(visible, () => {
     if (visible) {
       setName('');
       setPerWeek(7);
     }
-  }, [visible]);
+  });
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Nouvelle habitude">
@@ -281,12 +282,12 @@ export function ManageHabitsSheet({
   const habits = data.habits.filter((h) => !h.archived);
   const [names, setNames] = useState<Record<string, string>>({});
   const [confirm, setConfirm] = useState<string | null>(null);
-  useEffect(() => {
+  useOnChange(visible, () => {
     if (visible) {
       setNames(Object.fromEntries(habits.map((h) => [h.id, h.name])));
       setConfirm(null);
     }
-  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Gérer les habitudes">
@@ -318,7 +319,7 @@ export function ManageHabitsSheet({
           </Row>
         </View>
       ))}
-      <Muted>Une habitude archivée disparaît des écrans ; ses jours cochés restent dans l'historique et les analyses passées.</Muted>
+      <Muted>Une habitude archivée disparaît des écrans ; ses jours cochés restent dans l’historique et les analyses passées.</Muted>
       <Button label="Terminé" onPress={onClose} />
     </Sheet>
   );

@@ -16,27 +16,33 @@ const CHANNEL = 'evening-reminder';
 const PREFIX = 'reminder-';
 const MORNING = 'morning-';
 
+/** Pas de rappels dans la version web (aperçu et contrôle visuel) : expo-notifications n'y fonctionne pas. */
+const WEB = Platform.OS === 'web';
+
 /** Affiche les notifications même quand l'appli est ouverte. */
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (!WEB)
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
 
 async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(CHANNEL, {
     name: 'Rappels du matin et du soir',
     description: 'Rappelle de noter la nuit et de remplir la journée.',
+    // eslint-disable-next-line import/namespace -- AndroidImportance existe bien (enum réexporté que le plugin d'import ne suit pas) ; vérifié par TypeScript.
     importance: Notifications.AndroidImportance.HIGH,
   });
 }
 
 /** Demande l'autorisation d'envoyer des notifications ; renvoie true si elle est accordée. */
 export async function requestReminderPermission(): Promise<boolean> {
+  if (WEB) return false;
   await ensureChannel(); // Android : le canal doit exister avant la demande.
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
@@ -45,6 +51,7 @@ export async function requestReminderPermission(): Promise<boolean> {
 }
 
 export async function hasReminderPermission(): Promise<boolean> {
+  if (WEB) return false;
   return (await Notifications.getPermissionsAsync()).granted;
 }
 
@@ -56,6 +63,7 @@ let running: Promise<void> | null = null;
  * Appelée à chaque rechargement des données ; les appels simultanés sont regroupés.
  */
 export function syncReminders(data: Data, settings: ReminderSettings, morning: MorningSettings): Promise<void> {
+  if (WEB) return Promise.resolve();
   const job = async () => {
     try {
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();

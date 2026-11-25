@@ -38,6 +38,7 @@ import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
 import { addDays, fromKey, isChallengeEnded, mondayOf, morningChecklist, nowHM, parseMorningSettings, sameDayLastYear, suggestTags, todayLayout, type TodayCard, type RecurringRule, type Slot } from '@/logic';
 import { loadSettings } from '@/db/settings';
+import { useOnChange } from '@/hooks/use-on-change';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const longDate = (k: string) => fromKey(k).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -60,9 +61,9 @@ export default function TodayScreen() {
 
   // Jour demandé depuis un autre onglet (Journal) : ?day=YYYY-MM-DD, t = horodatage pour rouvrir le même jour.
   const params = useLocalSearchParams<{ day?: string; t?: string }>();
-  useEffect(() => {
+  useOnChange(`${params.day ?? ''}|${params.t ?? ''}`, () => {
     if (params.day && /^\d{4}-\d{2}-\d{2}$/.test(params.day)) setPicked(params.day);
-  }, [params.day, params.t]);
+  });
 
   const day = picked ?? today;
   const isToday = day === today;

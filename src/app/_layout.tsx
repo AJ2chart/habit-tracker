@@ -28,6 +28,7 @@ SplashScreen.preventAutoHideAsync();
 /** Toucher un rappel ouvre la journée concernée dans Aujourd'hui (appli ouverte ou lancée par la notification). */
 function useOpenDayFromNotification() {
   useEffect(() => {
+    if (process.env.EXPO_OS === 'web') return; // pas de notifications sur le web
     const open = (r: Notifications.NotificationResponse | null) => {
       const day = r?.notification.request.content.data?.day;
       if (typeof day === 'string') router.navigate({ pathname: '/', params: { day, t: String(Date.now()) } });

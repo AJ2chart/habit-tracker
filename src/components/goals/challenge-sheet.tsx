@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, Muted, Row, Sheet, TextButton } from '@/components/ui';
 import { EnergyLabels, MoodLabels, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDuration, type ChallengeAction, type ChallengeReview } from '@/logic';
+import { useOnChange } from '@/hooks/use-on-change';
 
 export type Reflection = { helped: string; hindered: string };
 
@@ -49,11 +50,11 @@ export function ChallengeSheet({
   const [helped, setHelped] = useState('');
   const [hindered, setHindered] = useState('');
   const [applied, setApplied] = useState<number[]>([]);
-  useEffect(() => {
+  useOnChange(review?.goal.id, () => {
     setHelped(reflection?.helped ?? '');
     setHindered(reflection?.hindered ?? '');
     setApplied([]);
-  }, [review?.goal.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
   if (!review) return null;
   const r = review;

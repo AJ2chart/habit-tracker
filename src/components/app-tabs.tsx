@@ -17,7 +17,7 @@ export default function AppTabs() {
       // Noms visibles sous toutes les icônes, comme dans le prototype (Android).
       labelVisibilityMode="labeled">
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Aujourd'hui</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Aujourd’hui</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={require('@/assets/images/tabIcons/today.png')} renderingMode="template" />
       </NativeTabs.Trigger>
 

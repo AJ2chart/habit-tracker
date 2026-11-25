@@ -25,6 +25,7 @@ import {
   type Goal,
   type Level,
 } from '@/logic';
+import { useOnChange } from '@/hooks/use-on-change';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','));
 
@@ -94,9 +95,9 @@ export default function GoalsScreen() {
 
   // ?review=<id> : ouvert depuis l'alerte de fin de challenge d'Aujourd'hui.
   const params = useLocalSearchParams<{ review?: string; t?: string }>();
-  useEffect(() => {
+  useOnChange(`${params.review ?? ''}|${params.t ?? ''}`, () => {
     if (params.review) setReviewId(params.review);
-  }, [params.review, params.t]);
+  });
   useEffect(() => {
     void loadSettings(db).then(setSettings);
   }, [db, data]);

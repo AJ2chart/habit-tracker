@@ -6,12 +6,10 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { SymbolView } from 'expo-symbols';
-import { Pressable, useColorScheme, View, StyleSheet, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View, type PressableProps } from 'react-native';
 
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 
-import { ExternalLink } from './external-link';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
@@ -22,7 +20,7 @@ export default function AppTabs() {
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="index" href="/" asChild>
-            <TabButton>Aujourd'hui</TabButton>
+            <TabButton>Aujourd&apos;hui</TabButton>
           </TabTrigger>
           <TabTrigger name="semaine" href="/semaine" asChild>
             <TabButton>Semaine</TabButton>
@@ -43,6 +41,7 @@ export default function AppTabs() {
 }
 
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+  const narrow = useWindowDimensions().width < 640;
   return (
     // Les props du déclencheur d'onglet ne correspondent pas exactement à celles de Pressable avec React 19.3.
     <Pressable
@@ -50,7 +49,7 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
       style={({ pressed }) => (pressed ? styles.pressed : undefined)}>
       <ThemedView
         type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
+        style={[styles.tabButtonView, narrow && { paddingHorizontal: Spacing.two }]}>
         <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
         </ThemedText>
@@ -59,29 +58,19 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
   );
 }
 
+/** Barre d'onglets de la version web : le nom de l'appli n'apparaît que s'il y a la place. */
 export function CustomTabList(props: TabListProps) {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-
+  const { width } = useWindowDimensions();
+  const narrow = width < 640;
   return (
-    <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Carnet d'aube
-        </ThemedText>
-
+    <View {...props} style={[styles.tabListContainer, narrow && styles.tabListNarrow]}>
+      <ThemedView type="backgroundElement" style={[styles.innerContainer, narrow && styles.innerNarrow]}>
+        {narrow ? null : (
+          <ThemedText type="smallBold" style={styles.brandText}>
+            Carnet d&apos;aube
+          </ThemedText>
+        )}
         {props.children}
-
-        <ExternalLink href="https://docs.expo.dev" asChild>
-          <Pressable style={styles.externalPressable}>
-            <ThemedText type="link">Docs</ThemedText>
-            <SymbolView
-              tintColor={colors.text}
-              name={{ ios: 'arrow.up.right.square', web: 'link' }}
-              size={12}
-            />
-          </Pressable>
-        </ExternalLink>
       </ThemedView>
     </View>
   );
@@ -106,6 +95,15 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
+  tabListNarrow: {
+    padding: Spacing.two,
+  },
+  innerNarrow: {
+    paddingHorizontal: Spacing.two,
+    gap: 2,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
   brandText: {
     marginRight: 'auto',
   },
@@ -116,12 +114,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.three,
     borderRadius: Spacing.three,
-  },
-  externalPressable: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginLeft: Spacing.three,
   },
 });

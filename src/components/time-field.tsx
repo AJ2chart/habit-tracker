@@ -25,7 +25,9 @@ function StepButton({ dir, label, onStep }: { dir: 1 | -1; label: string; onStep
   /** Numéro du geste en cours : une boucle d'un ancien geste s'arrête d'elle-même. */
   const gesture = useRef(0);
   const latest = useRef(onStep);
-  latest.current = onStep;
+  useEffect(() => {
+    latest.current = onStep;
+  });
 
   const stop = useRef(() => {
     gesture.current++;
@@ -70,7 +72,9 @@ export function TimeField({ label, value, onChange }: { label: string; value: st
   const [typing, setTyping] = useState(false);
   const [text, setText] = useState('');
   const latest = useRef(value);
-  latest.current = value;
+  useEffect(() => {
+    latest.current = value;
+  }, [value]);
 
   const step = (dir: 1 | -1) => {
     // Utiliser −/+ quitte la saisie au clavier.

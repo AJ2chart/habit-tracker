@@ -75,7 +75,7 @@ function ListView({ data, today, onTag }: { data: Data; today: string; onTag: (t
   if (!keys.length)
     return (
       <Card title="Pas encore d'entrée">
-        <Muted>Remplis le journal du jour dans l'onglet Aujourd'hui : humeur, énergie et une note. Tes journées apparaîtront ici, mois par mois.</Muted>
+        <Muted>Remplis le journal du jour dans l’onglet Aujourd’hui : humeur, énergie et une note. Tes journées apparaîtront ici, mois par mois.</Muted>
       </Card>
     );
   const byMonth = new Map<string, string[]>();

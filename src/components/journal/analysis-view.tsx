@@ -79,7 +79,7 @@ function DayShiftCard({ data, today }: { data: Data; today: string }) {
           ))}
         </>
       ) : shift.drops >= 2 ? (
-        <Muted>Pas de point commun net entre les journées en baisse pour l'instant. Des #étiquettes dans la note du soir aideront à les repérer.</Muted>
+        <Muted>Pas de point commun net entre les journées en baisse pour l’instant. Des #étiquettes dans la note du soir aideront à les repérer.</Muted>
       ) : null}
     </Card>
   );

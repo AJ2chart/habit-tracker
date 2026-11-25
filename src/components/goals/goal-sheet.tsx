@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Field, Muted, Row, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { LEVEL_LABELS, PARENT_LEVEL, PERIOD_UNIT, challengeEnd, isActiveAt, periodStartFor, type Data, type Goal, type Level } from '@/logic';
+import { useOnChange } from '@/hooks/use-on-change';
 
 const PRESETS: Record<Level, number[]> = { hebdo: [4, 8, 12], mensuel: [1, 3, 6], annuel: [] };
 
@@ -52,7 +53,9 @@ export function GoalSheet({
   const [duration, setDuration] = useState(0);
   const [customDuration, setCustomDuration] = useState('');
 
-  useEffect(() => {
+  // Feuille ouverte (ou autre objectif) : repart des valeurs de l'objectif. Un simple rechargement
+  // des données pendant la saisie ne remet rien à zéro.
+  useOnChange(visible ? `${goal?.id ?? 'nouveau'}|${defaultLevel ?? ''}|${defaultParentId ?? ''}` : null, () => {
     if (!visible) return;
     setLevel(goal?.level ?? defaultLevel ?? 'annuel');
     setParentId(goal ? goal.parentId : defaultParentId ?? null);
@@ -66,7 +69,7 @@ export function GoalSheet({
     setConfirm(false);
     setDuration(0);
     setCustomDuration('');
-  }, [visible, goal, defaultLevel, defaultParentId]);
+  });
 
   const habits = data.habits.filter((h) => !h.archived);
   const parentLevel = PARENT_LEVEL[level];
@@ -188,7 +191,7 @@ export function GoalSheet({
                   ))}
                 </View>
               ) : (
-                <Text style={{ color: c.warn, fontSize: 13 }}>Crée d'abord une habitude dans l'onglet Aujourd'hui.</Text>
+                <Text style={{ color: c.warn, fontSize: 13 }}>Crée d’abord une habitude dans l’onglet Aujourd’hui.</Text>
               )}
             </>
           ) : null}

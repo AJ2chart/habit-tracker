@@ -5,6 +5,7 @@ import { Card, Muted } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { WeeklyReview } from '@/logic';
+import { useOnChange } from '@/hooks/use-on-change';
 
 type Fields = { good: string; hard: string; change: string };
 const QUESTIONS: [keyof Fields, string][] = [
@@ -31,19 +32,22 @@ export function ReviewCard({
   const [f, setF] = useState<Fields>({ good: review?.good ?? '', hard: review?.hard ?? '', change: review?.change ?? '' });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    setF({ good: review?.good ?? '', hard: review?.hard ?? '', change: review?.change ?? '' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekStart]);
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  useOnChange(weekStart, () => setF({ good: review?.good ?? '', hard: review?.hard ?? '', change: review?.change ?? '' }));
 
   const flush = (next: Fields) => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
     if (next.good !== (review?.good ?? '') || next.hard !== (review?.hard ?? '') || next.change !== (review?.change ?? '')) onSave(next);
   };
+
+  // En quittant l'écran, enregistre ce qui était encore en attente (comme le journal).
+  const pending = useRef(() => {});
+  useEffect(() => {
+    pending.current = () => {
+      if (timer.current) flush(f);
+    };
+  });
+  useEffect(() => () => pending.current(), []);
 
   const filled = QUESTIONS.filter(([k]) => f[k].trim()).length;
 

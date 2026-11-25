@@ -8,7 +8,7 @@ const BASE = process.env.BASE ?? 'http://localhost:8081';
 const OUT = 'e2e-out';
 mkdirSync(OUT, { recursive: true });
 
-const VIEWPORTS = { petit: { width: 320, height: 640 }, telephone: { width: 393, height: 851 }, tablette: { width: 820, height: 1180 } };
+const VIEWPORTS = { petit: { width: 360, height: 740 }, telephone: { width: 393, height: 851 }, tablette: { width: 820, height: 1180 } };
 const SCHEMES = ['light', 'dark'];
 const ROUTES = { aujourdhui: '/', semaine: '/semaine', objectifs: '/objectifs', journal: '/journal', reglages: '/reglages' };
 const MORNING = '2026-11-25T08:00:00';
@@ -258,6 +258,20 @@ async function timedPass(browser, slow) {
   await waitReady(page);
   if (!(await page.getByText('Ressenti modifié').count())) report(where.current, 'note rapide perdue', 'la modification n’a pas été gardée');
 
+  // d) Revue de la semaine tapée puis changement d'onglet aussitôt : elle doit être gardée.
+  where.current = `interactions ${tag} · revue de la semaine`;
+  await page.goto(`${BASE}/semaine`);
+  await page.waitForTimeout(800);
+  const good = page.getByLabel("Qu'est-ce qui a bien marché ?");
+  if (await good.count()) {
+    await good.first().fill('Revue tapée vite');
+    await page.goto(`${BASE}/`);
+    await waitReady(page);
+    await page.goto(`${BASE}/semaine`);
+    await page.waitForTimeout(800);
+    if ((await good.first().inputValue()) !== 'Revue tapée vite') report(where.current, 'revue perdue', 'le texte tapé juste avant de changer d’onglet a disparu');
+  } else report(where.current, 'champ introuvable', 'champ « Qu’est-ce qui a bien marché ? » absent de Semaine');
+
   await check(page, `interactions ${tag} · écran final`);
   await context.close();
 }
@@ -275,7 +289,14 @@ try {
 }
 
 writeFileSync(`${OUT}/rapport.json`, JSON.stringify(issues, null, 2));
-const lines = issues.map((i) => `- [${i.kind}] ${i.where} — ${i.detail}`);
+// Regroupe les alertes identiques (même type, même détail) et liste toutes les combinaisons touchées.
+const groups = new Map();
+for (const i of issues) {
+  const key = `${i.kind}\u0000${i.detail}`;
+  if (!groups.has(key)) groups.set(key, { kind: i.kind, detail: i.detail, where: [] });
+  groups.get(key).where.push(i.where);
+}
+const lines = [...groups.values()].map((g) => `- [${g.kind}] ${g.detail}\n    × ${g.where.length} : ${g.where.join(' | ')}`);
 writeFileSync(`${OUT}/rapport.md`, `# Contrôle visuel\n\n${issues.length} alerte(s)\n\n${lines.join('\n')}\n`);
 console.log(`${issues.length} alerte(s)`);
 for (const l of lines) console.log(l); // rapport complet, jamais tronqué

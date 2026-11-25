@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TimeRange } from '@/components/time-field';
 import { Button, Card, Chip, Row, TextButton } from '@/components/ui';
 import { MoodColors, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useOnChange } from '@/hooks/use-on-change';
 import { formatDuration, sleepMinutes, type SleepEntry } from '@/logic';
 
 export const SleepQualityLabels = ['Très mauvaise', 'Mauvaise', 'Moyenne', 'Bonne', 'Excellente'] as const;
@@ -38,14 +39,13 @@ export function SleepCard({
   const [quality, setQuality] = useState<number | null>(entry?.quality ?? null);
   const [awakenings, setAwakenings] = useState<number | null>(entry?.awakenings ?? null);
 
-  useEffect(() => {
+  useOnChange(`${day}|${!!entry}`, () => {
     setEditing(!entry);
     setBed(entry?.bed ?? previous?.bed ?? '23:00');
     setWake(entry?.wake ?? previous?.wake ?? '07:00');
     setQuality(entry?.quality ?? null);
     setAwakenings(entry?.awakenings ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day, !!entry]);
+  });
 
   const duration = sleepMinutes(bed, wake);
   const plausible = duration >= 60 && duration <= 16 * 60;

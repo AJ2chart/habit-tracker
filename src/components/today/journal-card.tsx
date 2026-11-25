@@ -5,6 +5,7 @@ import { Button, Card, Chip } from '@/components/ui';
 import { EnergyLabels, MoodColors, MoodLabels, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tagsOf, toggleTag, type Energy, type Mood, type MorningEntry } from '@/logic';
+import { useOnChange } from '@/hooks/use-on-change';
 
 type Entry = { mood: Mood | null; energy: Energy | null; text: string };
 
@@ -38,10 +39,7 @@ export function JournalCard({
   const energy = entry?.energy ?? null;
 
   // Recharge la note quand on change de jour, sans écraser une saisie en cours.
-  useEffect(() => {
-    setText(entry?.text ?? '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day]);
+  useOnChange(day, () => setText(entry?.text ?? ''));
 
   const flush = (t: string) => {
     if (timer.current) clearTimeout(timer.current);
@@ -51,9 +49,11 @@ export function JournalCard({
 
   // En quittant la carte (« Terminé », autre onglet…), enregistre la note encore en attente.
   const pending = useRef(() => {});
-  pending.current = () => {
-    if (timer.current) flush(text);
-  };
+  useEffect(() => {
+    pending.current = () => {
+      if (timer.current) flush(text);
+    };
+  });
   useEffect(() => () => pending.current(), []);
 
   return (
@@ -175,10 +175,7 @@ function FoldingMoodCard({
 }) {
   const c = useTheme();
   const [editing, setEditing] = useState(entry?.mood == null);
-  useEffect(() => {
-    setEditing(entry?.mood == null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day]);
+  useOnChange(day, () => setEditing(entry?.mood == null));
 
   if (entry && entry.mood != null && !editing) {
     return (

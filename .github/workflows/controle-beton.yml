@@ -29,7 +29,10 @@ jobs:
       - name: Lint (zéro alerte)
         id: lint
         continue-on-error: true
-        run: npx expo lint --max-warnings 0
+        run: |
+          mkdir -p e2e-out
+          npx expo lint --max-warnings 0 2>&1 | tee e2e-out/lint.txt
+          exit ${PIPESTATUS[0]}
 
       - name: Enregistrer la configuration du lint si elle vient d'être créée
         run: |
@@ -38,27 +41,35 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "Configuration du lint (expo lint)"
-            git push
+            git pull --rebase -q && git push
           fi
 
       - name: TypeScript
         id: tsc
         continue-on-error: true
-        run: npx tsc --noEmit
+        run: |
+          mkdir -p e2e-out
+          npx tsc --noEmit 2>&1 | tee e2e-out/tsc.txt
+          exit ${PIPESTATUS[0]}
 
       - name: Diagnostic Expo (expo-doctor)
         id: doctor
         continue-on-error: true
-        run: npx expo-doctor
+        run: |
+          mkdir -p e2e-out
+          npx expo-doctor 2>&1 | tee e2e-out/doctor.txt
+          exit ${PIPESTATUS[0]}
 
       - name: Tests de la logique, de la base et de la sauvegarde
         id: unit
         continue-on-error: true
         # node:sqlite est marqué « expérimental » par Node 22 : seul cet avertissement-là est masqué.
+        env:
+          NODE_OPTIONS: --disable-warning=ExperimentalWarning
         run: |
-          npx --yes tsx tests/logic.test.ts
-          node --disable-warning=ExperimentalWarning --import tsx tests/db.test.ts
-          node --disable-warning=ExperimentalWarning --import tsx tests/backup.test.ts
+          mkdir -p e2e-out
+          set -o pipefail
+          { npx --yes tsx tests/logic.test.ts && npx --yes tsx tests/db.test.ts && npx --yes tsx tests/backup.test.ts; } 2>&1 | tee e2e-out/tests.txt
 
       - name: Préparer le navigateur de test
         run: |
@@ -79,6 +90,19 @@ jobs:
         id: visual
         continue-on-error: true
         run: node tests/e2e/visual.mjs
+
+      - name: Publier le rapport sur la branche controle-beton-rapport
+        if: always()
+        run: |
+          mkdir -p /tmp/rapport && cp -r e2e-out/*.txt e2e-out/rapport.md e2e-out/rapport.json /tmp/rapport/ 2>/dev/null || true
+          mkdir -p /tmp/rapport/captures && cp e2e-out/*-telephone-dark-*.png e2e-out/*-petit-light-*.png e2e-out/*feuille*.png /tmp/rapport/captures/ 2>/dev/null || true
+          cp web.log /tmp/rapport/ 2>/dev/null || true
+          cd /tmp/rapport
+          git init -q -b controle-beton-rapport
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "Rapport du Contrôle béton ($GITHUB_RUN_ID)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" controle-beton-rapport
 
       - name: Garder le rapport et les captures
         if: always()
