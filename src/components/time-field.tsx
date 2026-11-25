@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Radius, Spacing } from '@/constants/theme';
@@ -29,11 +29,11 @@ function StepButton({ dir, label, onStep }: { dir: 1 | -1; label: string; onStep
     latest.current = onStep;
   });
 
-  const stop = useRef(() => {
+  const stop = useCallback(() => {
     gesture.current++;
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
-  }).current;
+  }, []);
   useEffect(() => stop, [stop]);
 
   const start = () => {

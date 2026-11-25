@@ -16,19 +16,15 @@ const CHANNEL = 'evening-reminder';
 const PREFIX = 'reminder-';
 const MORNING = 'morning-';
 
-/** Pas de rappels dans la version web (aperçu et contrôle visuel) : expo-notifications n'y fonctionne pas. */
-const WEB = Platform.OS === 'web';
-
-/** Affiche les notifications même quand l'appli est ouverte. */
-if (!WEB)
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
+/** Affiche les notifications même quand l'appli est ouverte. (Version web : reminders.web.ts.) */
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 async function ensureChannel() {
   if (Platform.OS !== 'android') return;
@@ -42,7 +38,6 @@ async function ensureChannel() {
 
 /** Demande l'autorisation d'envoyer des notifications ; renvoie true si elle est accordée. */
 export async function requestReminderPermission(): Promise<boolean> {
-  if (WEB) return false;
   await ensureChannel(); // Android : le canal doit exister avant la demande.
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
@@ -51,7 +46,6 @@ export async function requestReminderPermission(): Promise<boolean> {
 }
 
 export async function hasReminderPermission(): Promise<boolean> {
-  if (WEB) return false;
   return (await Notifications.getPermissionsAsync()).granted;
 }
 
@@ -63,7 +57,6 @@ let running: Promise<void> | null = null;
  * Appelée à chaque rechargement des données ; les appels simultanés sont regroupés.
  */
 export function syncReminders(data: Data, settings: ReminderSettings, morning: MorningSettings): Promise<void> {
-  if (WEB) return Promise.resolve();
   const job = async () => {
     try {
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();

@@ -76,15 +76,11 @@ jobs:
           npm install --no-save --no-audit --no-fund playwright
           npx playwright install --with-deps chromium
 
-      - name: Lancer la version web
+      - name: Exporter et servir la version web
         run: |
-          npx expo start --web --port 8081 > web.log 2>&1 &
-          for i in $(seq 1 120); do
-            if curl -sf http://localhost:8081 > /dev/null; then break; fi
-            sleep 5
-          done
-          # Premier chargement : laisse Metro préparer le bundle avant les mesures.
-          curl -sf "http://localhost:8081/?seed=empty" > /dev/null || true
+          npx expo export -p web > web.log 2>&1 || { cat web.log; exit 1; }
+          node tests/e2e/serve.mjs dist >> web.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8081 > /dev/null && break; sleep 1; done
 
       - name: Contrôle visuel (débordements, textes, erreurs, interactions)
         id: visual

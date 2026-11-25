@@ -1,8 +1,7 @@
-import { DarkTheme, DefaultTheme, router, ThemeProvider } from 'expo-router';
-import * as Notifications from 'expo-notifications';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
-import { Suspense, useEffect } from 'react';
+import { Suspense } from 'react';
 import { ActivityIndicator, useColorScheme, View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
@@ -10,6 +9,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { unlockDatabase } from '@/db/encryption';
 import { migrate } from '@/db/schema';
+import { useOpenDayFromNotification } from '@/notifications/open-day';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Ouverture de la base : déverrouillage (chiffrement) puis mise à jour du schéma. */
@@ -24,20 +24,6 @@ async function initDatabase(db: SQLiteDatabase) {
 }
 
 SplashScreen.preventAutoHideAsync();
-
-/** Toucher un rappel ouvre la journée concernée dans Aujourd'hui (appli ouverte ou lancée par la notification). */
-function useOpenDayFromNotification() {
-  useEffect(() => {
-    if (process.env.EXPO_OS === 'web') return; // pas de notifications sur le web
-    const open = (r: Notifications.NotificationResponse | null) => {
-      const day = r?.notification.request.content.data?.day;
-      if (typeof day === 'string') router.navigate({ pathname: '/', params: { day, t: String(Date.now()) } });
-    };
-    void Notifications.getLastNotificationResponseAsync().then(open);
-    const sub = Notifications.addNotificationResponseReceivedListener(open);
-    return () => sub.remove();
-  }, []);
-}
 
 function Loading() {
   return (

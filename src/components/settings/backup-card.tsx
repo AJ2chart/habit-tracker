@@ -55,7 +55,9 @@ export function BackupCard({ db, lastBackup, onDone }: { db: SQLiteDatabase; las
     setPending(null);
   };
 
-  const daysSince = lastBackup ? Math.floor((Date.now() - Date.parse(lastBackup)) / 864e5) : null;
+  // Heure lue une fois à l'ouverture de l'écran (pas pendant chaque rendu).
+  const [now] = useState(() => Date.now());
+  const daysSince = lastBackup ? Math.floor((now - Date.parse(lastBackup)) / 864e5) : null;
 
   const doExport = async () => {
     setError(null);
