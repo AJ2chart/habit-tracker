@@ -33,10 +33,10 @@ function detect() {
   };
   // Partie réellement visible : un ancêtre qui masque le débordement (overflow hidden/clip) coupe ce qui dépasse.
   // Ce qui est coupé ainsi n'est pas « hors écran » : c'est le détecteur « texte coupé en silence » qui s'en charge.
-  const clipBox = (el, r) => {
+  const clipBox = (el, r, includeSelf = false) => {
     let left = r.left;
     let right = r.right;
-    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    for (let p = includeSelf ? el : el.parentElement; p && p !== document.body; p = p.parentElement) {
       const s = getComputedStyle(p);
       if (s.overflowX === 'hidden' || s.overflowX === 'clip') {
         const pr = p.getBoundingClientRect();
@@ -93,7 +93,7 @@ function detect() {
     const range = document.createRange();
     range.selectNodeContents(n);
     const rr = range.getBoundingClientRect();
-    const tv = clipBox(n.parentElement, rr);
+    const tv = clipBox(n.parentElement, rr, true); // le texte est coupé par son propre bloc aussi
     if (rr.width && (tv.right > vw + 1 || tv.left < -1)) out.push(['texte hors écran', `${label(n.parentElement)} : ${Math.round(rr.left)}→${Math.round(rr.right)}`]);
   }
 
