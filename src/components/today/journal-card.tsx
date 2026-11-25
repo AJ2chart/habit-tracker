@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Card, Chip } from '@/components/ui';
+import { Button, Card, Chip } from '@/components/ui';
 import { EnergyLabels, MoodColors, MoodLabels, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tagsOf, toggleTag, type Energy, type Mood, type MorningEntry } from '@/logic';
@@ -19,6 +19,7 @@ export function JournalCard({
   title = 'Journal',
   placeholder = 'Une note sur ta journée… #étiquettes',
   tags = [],
+  footer,
 }: {
   day: string;
   entry: Entry | undefined;
@@ -27,6 +28,8 @@ export function JournalCard({
   placeholder?: string;
   /** Étiquettes proposées sous la note, dans l'ordre */
   tags?: string[];
+  /** Bas de carte (bouton « Terminé » du matin, par exemple) */
+  footer?: ReactNode;
 }) {
   const c = useTheme();
   const [text, setText] = useState(entry?.text ?? '');
@@ -40,15 +43,18 @@ export function JournalCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day]);
 
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
-
   const flush = (t: string) => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
     if (t !== (entry?.text ?? '')) onSave({ mood, energy, text: t });
   };
+
+  // En quittant la carte (« Terminé », autre onglet…), enregistre la note encore en attente.
+  const pending = useRef(() => {});
+  pending.current = () => {
+    if (timer.current) flush(text);
+  };
+  useEffect(() => () => pending.current(), []);
 
   return (
     <Card title={title}>
@@ -94,6 +100,7 @@ export function JournalCard({
           }}
         />
       ) : null}
+      {footer}
     </Card>
   );
 }
@@ -194,6 +201,14 @@ export function MorningMoodCard({
       tags={tags}
       entry={entry ? { mood: entry.mood, energy: entry.energy, text: entry.note } : undefined}
       onSave={(e) => onSave({ mood: e.mood, energy: e.energy, note: e.text })}
+      footer={
+        entry?.mood != null ? (
+          // Tout est déjà enregistré au fil de la saisie : le bouton replie juste la carte.
+          <View style={{ alignItems: 'flex-end' }}>
+            <Button label="Terminé" onPress={() => setEditing(false)} style={{ paddingVertical: 9 }} />
+          </View>
+        ) : null
+      }
     />
   );
 }

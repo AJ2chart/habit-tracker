@@ -36,7 +36,7 @@ import {
 } from '@/db/actions';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { addDays, brokenStreaks, fromKey, isChallengeEnded, mondayOf, morningChecklist, nowHM, parseMorningSettings, sameDayLastYear, suggestTags, type RecurringRule, type Slot } from '@/logic';
+import { addDays, fromKey, isChallengeEnded, mondayOf, morningChecklist, nowHM, parseMorningSettings, sameDayLastYear, suggestTags, type RecurringRule, type Slot } from '@/logic';
 import { loadSettings } from '@/db/settings';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -102,7 +102,6 @@ export default function TodayScreen() {
       setAdding(false);
     });
 
-  const alerts = isToday ? brokenStreaks(data, today) : [];
   // Challenge terminé depuis moins de 14 jours, dont le bilan n'a pas encore été ouvert.
   const endedChallenges = isToday
     ? data.goals.filter((g) => isChallengeEnded(g, today) && g.endDate! >= addDays(today, -14) && !settings[`challenge_${g.id}`])
@@ -184,8 +183,8 @@ export default function TodayScreen() {
     ) : null,
   };
   const cards = evening
-    ? ['now', 'evening', 'notes', 'habits', 'schedule', 'routine', 'sleep', 'morning']
-    : ['routine', 'sleep', 'morning', 'now', 'notes', 'schedule', 'habits', 'evening'];
+    ? ['now', 'evening', 'habits', 'notes', 'schedule', 'routine', 'sleep', 'morning']
+    : ['routine', 'sleep', 'morning', 'habits', 'now', 'schedule', 'notes', 'evening'];
 
   const lyKey = sameDayLastYear(day);
   const lastYear = data.journal[lyKey];
@@ -203,12 +202,6 @@ export default function TodayScreen() {
           </View>
         ) : null}
 
-        {alerts.map((h) => (
-          <View key={h.id} style={[styles.alert, { borderColor: c.line, borderLeftColor: c.warn }]}>
-            <Text style={[styles.alertText, { color: c.text }]} numberOfLines={2}>{`2 jours sans « ${h.name} »`}</Text>
-            <TextButton label="Fait" onPress={() => run(() => setHabitChecked(db, today, h.id, true))} accessibilityLabel={`${h.name} : fait aujourd'hui`} />
-          </View>
-        ))}
         {endedChallenges.map((g) => (
           <View key={g.id} style={[styles.alert, { borderColor: c.line, borderLeftColor: c.goal }]}>
             <Text style={[styles.alertText, { color: c.text }]} numberOfLines={2}>{`Challenge « ${g.title} » terminé`}</Text>

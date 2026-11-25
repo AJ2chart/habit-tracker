@@ -79,10 +79,10 @@ export function SleepCard({
           </Chip>
         ))}
       </Row>
+      <Text style={[styles.label, { color: c.textSecondary }]}>Réveils dans la nuit</Text>
       <Row>
-        <Text style={[styles.label, { color: c.textSecondary, flex: 1 }]}>Réveils</Text>
         {[0, 1, 2, 3].map((n) => (
-          <Chip key={n} label={n === 3 ? '3+' : String(n)} selected={awakenings === n} onPress={() => setAwakenings(awakenings === n ? null : n)} style={styles.small} />
+          <Chip key={n} label={n === 3 ? '3+' : String(n)} selected={awakenings === n} onPress={() => setAwakenings(awakenings === n ? null : n)} style={{ flex: 1 }} />
         ))}
       </Row>
       <Row style={{ justifyContent: 'space-between' }}>
