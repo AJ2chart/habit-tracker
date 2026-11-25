@@ -54,4 +54,4 @@ Problème déjà rencontré plusieurs fois (Gleamvault, Carnet d'aube) : sur And
 
 ## Contrôle béton
 
-Après une grosse évolution, lancer le workflow « Contrôle béton » (voir README) et viser **0 alerte** : chaque alerte est examinée ; un faux positif se corrige dans le détecteur (`tests/e2e/visual.mjs`), jamais en l'ignorant. Tout bug trouvé laisse un test permanent. Toute nouveauté d'écran ou de logique arrive avec son test (logique dans `src/logic` + `tests/logic.test.ts`, base dans `tests/db.test.ts`, interaction dans `tests/e2e/visual.mjs`).
+Après une grosse évolution, **et toujours avant de lancer une nouvelle version Android** (`version-android.yml`), lancer le workflow « Contrôle béton » (voir README) et viser **0 alerte** : chaque alerte est examinée ; un faux positif se corrige dans le détecteur (`tests/e2e/visual.mjs`), jamais en l'ignorant. Tout bug trouvé laisse un test permanent. Toute nouveauté d'écran ou de logique arrive avec son test (logique dans `src/logic` + `tests/logic.test.ts`, base dans `tests/db.test.ts`, interaction dans `tests/e2e/visual.mjs`).
