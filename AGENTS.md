@@ -51,3 +51,7 @@ Problème déjà rencontré plusieurs fois (Gleamvault, Carnet d'aube) : sur And
 - Ne pas ajouter de `KeyboardAvoidingView` ni de défilement maison dans un composant : ça entre en conflit avec ce mécanisme.
 - Un champ qui apparaît au toucher (édition en place, `autoFocus`) est couvert par le mécanisme : ne rien ajouter.
 - Avant de livrer un écran avec des champs, vérifier : champ en bas de l'écran, champ en bas d'une feuille, passage d'un champ à l'autre clavier ouvert, champ qui apparaît au toucher.
+
+## Contrôle béton
+
+Après une grosse évolution, lancer le workflow « Contrôle béton » (voir README) et viser **0 alerte** : chaque alerte est examinée ; un faux positif se corrige dans le détecteur (`tests/e2e/visual.mjs`), jamais en l'ignorant. Tout bug trouvé laisse un test permanent. Toute nouveauté d'écran ou de logique arrive avec son test (logique dans `src/logic` + `tests/logic.test.ts`, base dans `tests/db.test.ts`, interaction dans `tests/e2e/visual.mjs`).

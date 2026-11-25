@@ -1,4 +1,4 @@
-import { createContext, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import {
   Dimensions,
   Modal,
@@ -20,12 +20,6 @@ import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/th
 import { useKeepFocusedInputVisible, useKeyboardHeight } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 
-/**
- * Permet à un geste maintenu (roue d'heure) de bloquer le défilement de l'écran ou de la feuille
- * qui le contient, le temps du geste.
- */
-export const ScrollLockContext = createContext<(locked: boolean) => void>(() => {});
-
 /** Écran défilant avec titre, sous-titre et boutons optionnels de part et d'autre du titre. */
 export function Screen({
   title,
@@ -42,17 +36,14 @@ export function Screen({
 }) {
   const c = useTheme();
   const centered = !!(left || right);
-  const [locked, setLocked] = useState(false);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: c.background }]}>
       {/* Défile tout seul pour garder le champ touché au-dessus du clavier (et de sa barre de suggestions). */}
       <KeyboardAwareScrollView
         bottomOffset={Spacing.five}
-        scrollEnabled={!locked}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled">
-        <ScrollLockContext.Provider value={setLocked}>
         <View style={[styles.header, centered && styles.headerRow]}>
           {left}
           <View style={[styles.flex, centered && styles.center]}>
@@ -64,7 +55,6 @@ export function Screen({
           {right}
         </View>
         {children}
-        </ScrollLockContext.Provider>
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );
@@ -239,7 +229,6 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
   const c = useTheme();
   const kb = useKeyboardHeight();
   const insets = useSafeAreaInsets();
-  const [locked, setLocked] = useState(false);
   // Sur Android plein écran, la hauteur annoncée du clavier n'inclut pas la barre de navigation du système.
   const lift = kb ? kb + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -258,14 +247,11 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
             }}
             scrollEventThrottle={32}
             keyboardShouldPersistTaps="handled"
-            scrollEnabled={!locked}
-            // Clavier fermé : laisse la place à la barre de navigation du téléphone (ou à la barre d'accueil de l'iPhone).
+                // Clavier fermé : laisse la place à la barre de navigation du téléphone (ou à la barre d'accueil de l'iPhone).
             contentContainerStyle={[styles.sheetContent, { paddingBottom: Spacing.five + (lift ? 0 : insets.bottom) }]}>
-            <ScrollLockContext.Provider value={setLocked}>
-              <Text style={[styles.cardTitle, { color: c.text }]}>{title}</Text>
+                  <Text style={[styles.cardTitle, { color: c.text }]}>{title}</Text>
               {children}
-            </ScrollLockContext.Provider>
-          </ScrollView>
+              </ScrollView>
         </View>
       </View>
     </Modal>
