@@ -8,7 +8,7 @@ import { Card, Chip, IconButton, Muted, Row, Screen } from '@/components/ui';
 import { MoodColors, MoodLabels, Radius, Spacing } from '@/constants/theme';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { fromKey, isBadDay, search, toKey, type Data, type DayKey } from '@/logic';
+import { fromKey, isBadDay, isDayNoted, search, toKey, type Data, type DayKey } from '@/logic';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const longDate = (k: string) => capitalize(fromKey(k).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
@@ -18,11 +18,7 @@ const WEEK_HEAD = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
 /** Ouvre ce jour dans l'onglet Aujourd'hui. */
 const openDay = (k: DayKey) => router.navigate({ pathname: '/', params: { day: k, t: String(Date.now()) } });
 
-const isNoted = (data: Data, k: DayKey) =>
-  (!!data.journal[k] && (!!data.journal[k].text || data.journal[k].mood !== null)) ||
-  data.morning[k]?.mood != null ||
-  !!data.morning[k]?.note ||
-  !!data.notes[k]?.length;
+const isNoted = isDayNoted;
 
 function MoodDot({ mood, size = 10 }: { mood: number | null | undefined; size?: number }) {
   const c = useTheme();

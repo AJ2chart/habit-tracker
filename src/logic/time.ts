@@ -23,3 +23,30 @@ export function normalizeTime(input: string): string {
 }
 
 export const nowHM = (d = new Date()) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+// ——— Champ d'heure (boutons −/+) ———
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** Sépare "HH:MM" ; les minutes sont arrondies au pas de 5. */
+export function splitTime(value: string): [number, number] {
+  const h = Math.min(23, Math.max(0, Number(value.slice(0, 2)) || 0));
+  const m = Math.round((Number(value.slice(3, 5)) || 0) / 5) * 5;
+  return m === 60 ? [(h + 1) % 24, 0] : [h, m];
+}
+
+/** Ajoute des minutes à "HH:MM", en restant dans la journée (23:30 + 60 → 00:30). */
+export function shiftTime(value: string, minutes: number): string {
+  const [h, m] = splitTime(value);
+  const t = (((h * 60 + m + minutes) % 1440) + 1440) % 1440;
+  return `${pad2(Math.floor(t / 60))}:${pad2(t % 60)}`;
+}
+
+/** Pas suivant : on se cale d'abord sur un multiple du pas (23:20 + → 23:30), puis on avance du pas. */
+export function stepTime(value: string, dir: 1 | -1, step = 15): string {
+  const [h, m] = splitTime(value);
+  const t = h * 60 + m;
+  const snapped = dir > 0 ? Math.floor(t / step) * step + step : Math.ceil(t / step) * step - step;
+  return shiftTime('00:00', snapped);
+}
+

@@ -287,6 +287,8 @@ t("étiquettes suggérées", () => {
   const s = L.suggestTags(d);
   assert.deepEqual(s.slice(0, 3), ["lecture", "travail", "yoga"]);
   assert.equal(s.filter((x) => L.fold(x) === "travail").length, 1); // pas de doublon avec la base
+  d.journal["2026-11-22"] = { date: "2026-11-22", mood: 2, energy: null, text: "#reunions sans accent" };
+  assert.equal(L.suggestTags(d).filter((x) => L.fold(x) === "reunions").length, 1); // accents ignorés
   assert.ok(s.includes("stress"));
   assert.equal(L.toggleTag("", "stress"), "#stress");
   assert.equal(L.toggleTag("Journée longue ", "stress"), "Journée longue #stress");
@@ -304,3 +306,75 @@ t("notes rapides", () => {
   assert.equal(r.length, 1);
   assert.equal(r[0].hits[0].label, "14:30");
 });
+
+t("champ d'heure : pas de 15 min", () => {
+  assert.equal(L.stepTime("23:20", 1), "23:30");
+  assert.equal(L.stepTime("23:20", -1), "23:15");
+  assert.equal(L.stepTime("23:30", 1), "23:45");
+  assert.equal(L.stepTime("23:45", 1), "00:00"); // passe minuit
+  assert.equal(L.stepTime("00:00", -1), "23:45");
+  assert.equal(L.stepTime("07:07", 1), "07:15");
+  assert.equal(L.shiftTime("23:30", 60), "00:30");
+  assert.deepEqual(L.splitTime("09:58"), [10, 0]);
+  assert.deepEqual(L.splitTime(""), [0, 0]); // valeur manquante
+  // Saisie au clavier
+  assert.equal(L.normalizeTime("2330"), "23:30");
+  assert.equal(L.isValidTime(L.normalizeTime("2575")), false);
+});
+
+t("créneau en cours / ensuite", () => {
+  const s = (id: string, start: string, end: string, done = false) => ({ id, date: "2026-11-25", start, end, title: id, habitId: null, ruleId: null, done, note: "" });
+  const slots = [s("b", "14:00", "15:00"), s("a", "09:00", "11:00"), s("c", "16:00", "17:00", true)];
+  assert.deepEqual(L.currentOrNext(slots, "10:00"), { slot: slots[1], current: true });
+  assert.deepEqual(L.currentOrNext(slots, "11:00"), { slot: slots[0], current: false }); // fin exclue
+  assert.equal(L.currentOrNext(slots, "16:30"), null); // le seul restant est déjà fait
+  assert.equal(L.currentOrNext([], "10:00"), null);
+});
+
+t("ordre de l'onglet Aujourd'hui", () => {
+  const o = { eveningFilled: false, writeEarly: false };
+  const am = L.todayLayout("2026-11-25", "2026-11-25", 8, o);
+  assert.equal(am.evening, false);
+  assert.equal(am.showEvening, false);
+  assert.equal(am.order[0], "routine");
+  assert.ok(am.order.indexOf("habits") < am.order.indexOf("schedule")); // habitudes avant l'emploi du temps
+  assert.equal(L.todayLayout("2026-11-25", "2026-11-25", 8, { ...o, writeEarly: true }).showEvening, true);
+  assert.equal(L.todayLayout("2026-11-25", "2026-11-25", 8, { ...o, eveningFilled: true }).showEvening, true);
+  const pm = L.todayLayout("2026-11-25", "2026-11-25", 17, o);
+  assert.equal(pm.showEvening, true);
+  assert.equal(pm.order[1], "evening");
+  assert.equal(L.todayLayout("2026-11-24", "2026-11-25", 8, o).showEvening, true); // jour passé
+  assert.equal(L.todayLayout("2026-11-26", "2026-11-25", 20, o).showEvening, false); // jour à venir
+  for (const l of [am, pm]) assert.equal(new Set(l.order).size, 8); // chaque carte une seule fois
+});
+
+t("jour noté dans le journal", () => {
+  const d = empty();
+  assert.equal(L.isDayNoted(d, "2026-11-25"), false);
+  d.notes["2026-11-25"] = [{ id: "n", date: "2026-11-25", time: "10:00", text: "x" }];
+  assert.equal(L.isDayNoted(d, "2026-11-25"), true);
+  d.morning["2026-11-24"] = { date: "2026-11-24", mood: null, energy: null, note: "" };
+  assert.equal(L.isDayNoted(d, "2026-11-24"), false); // entrée vide
+  d.morning["2026-11-24"].mood = 2;
+  assert.equal(L.isDayNoted(d, "2026-11-24"), true);
+});
+
+t("données extrêmes", () => {
+  const d = empty();
+  const long = "x".repeat(5000) + " #" + "é".repeat(200);
+  d.habits = Array.from({ length: 60 }, (_, i) => ({ id: `h${i}`, name: `Habitude ${i} ${"très longue ".repeat(5)}`, perWeek: 7 }));
+  for (const k of L.range("2025-11-26", "2026-11-25")) {
+    d.journal[k] = { date: k, mood: (k.charCodeAt(9) % 5) as L.Mood, energy: 2, text: long };
+    d.morning[k] = { date: k, mood: 3, energy: 1, note: "#fatigue" };
+    d.notes[k] = Array.from({ length: 30 }, (_, i) => ({ id: `${k}-${i}`, date: k, time: "12:00", text: `#tag${i % 40}` }));
+  }
+  const tags = L.suggestTags(d);
+  assert.ok(tags.length >= 40);
+  assert.equal(new Set(tags.map(L.fold)).size, tags.length);
+  const s = L.computeDayShift(d, "2026-11-25");
+  assert.ok(s && s.causes.length <= 4);
+  assert.ok(L.morningChecklist(d, "2026-11-25", { ...L.DEFAULT_MORNING, habits: d.habits.map((h) => h.id) }).length === 61);
+  assert.ok(L.search(d, "tag1").length > 0);
+  assert.equal(L.toggleTag(long, "fatigue").endsWith("#fatigue"), true);
+});
+console.log(`${passed} groupes au total`);

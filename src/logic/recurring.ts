@@ -52,3 +52,12 @@ export function missingOccurrences(
 }
 
 export const sortSlots = (slots: Slot[]) => [...slots].sort((a, b) => a.start.localeCompare(b.start));
+
+/** Créneau en cours (pas encore coché), sinon le prochain de la journée ; null s'il n'y en a plus. */
+export function currentOrNext(slots: Slot[], now: string): { slot: Slot; current: boolean } | null {
+  const list = sortSlots(slots).filter((s) => !s.done);
+  const cur = list.find((s) => s.start <= now && now < s.end);
+  if (cur) return { slot: cur, current: true };
+  const next = list.find((s) => s.start > now);
+  return next ? { slot: next, current: false } : null;
+}

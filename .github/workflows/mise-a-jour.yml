@@ -49,7 +49,8 @@ jobs:
       - name: Tester la logique
         run: |
           npx --yes tsx tests/logic.test.ts
-          npx --yes tsx tests/backup.test.ts
+          node --disable-warning=ExperimentalWarning --import tsx tests/db.test.ts
+          node --disable-warning=ExperimentalWarning --import tsx tests/backup.test.ts
 
       - name: Publier la mise à jour
         env:

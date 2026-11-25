@@ -2,16 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { sortSlots, type Slot } from '@/logic';
-
-/** Créneau en cours (pas encore coché), sinon le prochain de la journée ; null s'il n'y en a plus. */
-export function currentOrNext(slots: Slot[], now: string): { slot: Slot; current: boolean } | null {
-  const list = sortSlots(slots).filter((s) => !s.done);
-  const cur = list.find((s) => s.start <= now && now < s.end);
-  if (cur) return { slot: cur, current: true };
-  const next = list.find((s) => s.start > now);
-  return next ? { slot: next, current: false } : null;
-}
+import { currentOrNext, type Slot } from '@/logic';
 
 /** Bandeau en haut de l'écran : ce qui se passe maintenant, ou ce qui vient ensuite. */
 export function NowCard({ slots, now, onOpen, onToggle }: { slots: Slot[]; now: string; onOpen: (s: Slot) => void; onToggle: (s: Slot) => void }) {

@@ -3,36 +3,13 @@ import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { isValidTime, normalizeTime } from '@/logic';
+import { isValidTime, normalizeTime, stepTime } from '@/logic';
 
-const pad = (n: number) => String(n).padStart(2, '0');
-/** Pas des boutons −/+, en minutes. */
-const STEP = 15;
+export { shiftTime, splitTime } from '@/logic';
+
 /** Délai avant la répétition quand on garde le doigt sur −/+, puis intervalle entre deux pas. */
 const HOLD_DELAY = 400;
 const REPEAT_EVERY = 110;
-
-/** Sépare "HH:MM" ; les minutes sont arrondies au pas de 5. */
-export function splitTime(value: string): [number, number] {
-  const h = Math.min(23, Math.max(0, Number(value.slice(0, 2)) || 0));
-  const m = Math.round((Number(value.slice(3, 5)) || 0) / 5) * 5;
-  return m === 60 ? [(h + 1) % 24, 0] : [h, m];
-}
-
-/** Ajoute des minutes à "HH:MM", en restant dans la journée (23:30 + 60 → 00:30). */
-export function shiftTime(value: string, minutes: number): string {
-  const [h, m] = splitTime(value);
-  const t = (((h * 60 + m + minutes) % 1440) + 1440) % 1440;
-  return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`;
-}
-
-/** Pas suivant : on se cale d'abord sur un multiple du pas (23:20 + → 23:30), puis on avance du pas. */
-function stepTime(value: string, dir: 1 | -1, step = STEP): string {
-  const [h, m] = splitTime(value);
-  const t = h * 60 + m;
-  const snapped = dir > 0 ? Math.floor(t / step) * step + step : Math.ceil(t / step) * step - step;
-  return shiftTime('00:00', snapped);
-}
 
 /** Nombre maximal de pas d'affilée en gardant le doigt appuyé (10 h) : filet de sécurité. */
 const MAX_REPEAT = 40;

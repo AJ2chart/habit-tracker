@@ -1,0 +1,99 @@
+# Contrôle béton : toutes les vérifications automatiques, lancées à la main après une grosse évolution.
+# Chaque étape tourne même si une précédente échoue ; le contrôle échoue à la fin s'il reste une alerte.
+# Captures et rapport complet : artefact « controle-beton » de l'exécution.
+name: Contrôle béton
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  controle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+
+      - name: Lint (zéro alerte)
+        id: lint
+        continue-on-error: true
+        run: npx expo lint --max-warnings 0
+
+      - name: Enregistrer la configuration du lint si elle vient d'être créée
+        run: |
+          git add -A eslint.config.js package.json package-lock.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Configuration du lint (expo lint)"
+            git push
+          fi
+
+      - name: TypeScript
+        id: tsc
+        continue-on-error: true
+        run: npx tsc --noEmit
+
+      - name: Diagnostic Expo (expo-doctor)
+        id: doctor
+        continue-on-error: true
+        run: npx expo-doctor
+
+      - name: Tests de la logique, de la base et de la sauvegarde
+        id: unit
+        continue-on-error: true
+        # node:sqlite est marqué « expérimental » par Node 22 : seul cet avertissement-là est masqué.
+        run: |
+          npx --yes tsx tests/logic.test.ts
+          node --disable-warning=ExperimentalWarning --import tsx tests/db.test.ts
+          node --disable-warning=ExperimentalWarning --import tsx tests/backup.test.ts
+
+      - name: Préparer le navigateur de test
+        run: |
+          npm install --no-save --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium
+
+      - name: Lancer la version web
+        run: |
+          npx expo start --web --port 8081 > web.log 2>&1 &
+          for i in $(seq 1 120); do
+            if curl -sf http://localhost:8081 > /dev/null; then break; fi
+            sleep 5
+          done
+          # Premier chargement : laisse Metro préparer le bundle avant les mesures.
+          curl -sf "http://localhost:8081/?seed=empty" > /dev/null || true
+
+      - name: Contrôle visuel (débordements, textes, erreurs, interactions)
+        id: visual
+        continue-on-error: true
+        run: node tests/e2e/visual.mjs
+
+      - name: Garder le rapport et les captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controle-beton
+          path: |
+            e2e-out/
+            web.log
+
+      - name: Bilan
+        run: |
+          echo "lint=${{ steps.lint.outcome }} tsc=${{ steps.tsc.outcome }} doctor=${{ steps.doctor.outcome }} tests=${{ steps.unit.outcome }} visuel=${{ steps.visual.outcome }}"
+          test "${{ steps.lint.outcome }}" = success
+          test "${{ steps.tsc.outcome }}" = success
+          test "${{ steps.doctor.outcome }}" = success
+          test "${{ steps.unit.outcome }}" = success
+          test "${{ steps.visual.outcome }}" = success

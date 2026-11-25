@@ -187,3 +187,29 @@ export function plannedMorning(data: Data, m: MorningSettings, now: Date, days =
   }
   return out;
 }
+
+// ——— Onglet Aujourd'hui ———
+
+export type TodayCard = 'routine' | 'now' | 'sleep' | 'morning' | 'habits' | 'schedule' | 'notes' | 'evening';
+
+/**
+ * Ordre des cartes d'Aujourd'hui. Avant 17 h, la journée commence par le matin ; après 17 h
+ * (et pour un jour passé), le soir passe devant. La carte du soir n'apparaît aujourd'hui qu'à
+ * partir de 17 h, sauf si elle est déjà remplie ou demandée ; jamais pour un jour à venir.
+ */
+export function todayLayout(day: DayKey, today: DayKey, hour: number, opts: { eveningFilled: boolean; writeEarly: boolean }) {
+  const isToday = day === today;
+  const evening = day < today || (isToday && hour >= 17);
+  const showEvening = day < today || (isToday && (evening || opts.writeEarly || opts.eveningFilled));
+  const order: TodayCard[] = evening
+    ? ['now', 'evening', 'habits', 'notes', 'schedule', 'routine', 'sleep', 'morning']
+    : ['routine', 'sleep', 'morning', 'habits', 'now', 'schedule', 'notes', 'evening'];
+  return { evening, showEvening, order };
+}
+
+/** Jour qui a quelque chose dans le journal : soir, matin ou notes rapides. */
+export const isDayNoted = (data: Data, k: DayKey) =>
+  (!!data.journal[k] && (!!data.journal[k].text || data.journal[k].mood !== null)) ||
+  data.morning[k]?.mood != null ||
+  !!data.morning[k]?.note ||
+  !!data.notes[k]?.length;

@@ -16,6 +16,11 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 async function initDatabase(db: SQLiteDatabase) {
   await unlockDatabase(db);
   await migrate(db);
+  // Contrôle visuel (version web seulement) : `?seed=extreme` ou `?seed=empty` charge des données de test.
+  if (process.env.EXPO_OS === 'web' && typeof location !== 'undefined') {
+    const seed = new URLSearchParams(location.search).get('seed');
+    if (seed) await (await import('@/db/test-seed')).seedForTests(db, seed);
+  }
 }
 
 SplashScreen.preventAutoHideAsync();

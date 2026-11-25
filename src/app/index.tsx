@@ -36,7 +36,7 @@ import {
 } from '@/db/actions';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTheme } from '@/hooks/use-theme';
-import { addDays, fromKey, isChallengeEnded, mondayOf, morningChecklist, nowHM, parseMorningSettings, sameDayLastYear, suggestTags, type RecurringRule, type Slot } from '@/logic';
+import { addDays, fromKey, isChallengeEnded, mondayOf, morningChecklist, nowHM, parseMorningSettings, sameDayLastYear, suggestTags, todayLayout, type TodayCard, type RecurringRule, type Slot } from '@/logic';
 import { loadSettings } from '@/db/settings';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -115,10 +115,9 @@ export default function TodayScreen() {
 
   const tags = suggestTags(data);
   // Après 17 h (ou un autre jour), le soir passe devant ; avant, la journée commence par le matin.
-  const evening = day < today || (isToday && new Date().getHours() >= 17);
-  const showEvening = day < today || (isToday && (evening || writeEarly || !!data.journal[day]));
+  const { showEvening, order: cards } = todayLayout(day, today, new Date().getHours(), { eveningFilled: !!data.journal[day], writeEarly });
 
-  const cardViews: Record<string, ReactNode> = {
+  const cardViews: Record<TodayCard, ReactNode> = {
     routine: showRoutine ? <RoutineCard items={routine} onToggleHabit={(id, on) => run(() => setHabitChecked(db, day, id, on))} /> : null,
     now: isToday ? (
       <NowCard slots={data.slots[day] ?? []} now={nowHM()} onOpen={(s) => setDetailId(s.id)} onToggle={(s) => run(() => setSlotDone(db, s, true))} />
@@ -176,9 +175,6 @@ export default function TodayScreen() {
       </View>
     ) : null,
   };
-  const cards = evening
-    ? ['now', 'evening', 'habits', 'notes', 'schedule', 'routine', 'sleep', 'morning']
-    : ['routine', 'sleep', 'morning', 'habits', 'now', 'schedule', 'notes', 'evening'];
 
   const lyKey = sameDayLastYear(day);
   const lastYear = data.journal[lyKey];
