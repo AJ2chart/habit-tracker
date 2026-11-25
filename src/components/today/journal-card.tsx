@@ -154,18 +154,23 @@ function TagPicker({ text, tags, onToggle }: { text: string; tags: string[]; onT
 }
 
 /**
- * Humeur du matin : le journal en version courte. Une ligne de résumé une fois notée
- * (toucher pour modifier), sinon humeur, énergie et une note facultative.
+ * Carte humeur repliable (matin ou soir) : une ligne de résumé une fois l'humeur notée
+ * (toucher pour modifier), sinon humeur, énergie et note. « Terminé » replie la carte ;
+ * tout est déjà enregistré au fil de la saisie.
  */
-export function MorningMoodCard({
+function FoldingMoodCard({
   day,
+  label,
+  placeholder,
   entry,
   onSave,
   tags,
 }: {
   day: string;
-  entry: MorningEntry | undefined;
-  onSave: (e: { mood: Mood | null; energy: Energy | null; note: string }) => void;
+  label: string;
+  placeholder: string;
+  entry: Entry | undefined;
+  onSave: (e: Entry) => void;
   tags?: string[];
 }) {
   const c = useTheme();
@@ -177,15 +182,15 @@ export function MorningMoodCard({
 
   if (entry && entry.mood != null && !editing) {
     return (
-      <Pressable onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel="Modifier l'humeur du matin">
+      <Pressable onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel={`Modifier : ${label.toLowerCase()}`}>
         <Card>
           <View style={styles.summary}>
-            <Text style={[styles.label, { color: c.textSecondary }]}>Ce matin</Text>
+            <Text style={[styles.label, { color: c.textSecondary }]}>{label}</Text>
             <View style={[styles.dot, { backgroundColor: MoodColors[entry.mood], alignSelf: 'center' }]} />
             <Text style={[styles.summaryText, { color: c.text }]}>{MoodLabels[entry.mood]}</Text>
             {entry.energy != null ? <Text style={[styles.summaryText, { color: c.textSecondary }]}>{`· énergie ${EnergyLabels[entry.energy].toLowerCase()}`}</Text> : null}
-            {entry.note ? (
-              <Text numberOfLines={1} style={[styles.summaryText, { color: c.textSecondary, flex: 1 }]}>{`· ${entry.note}`}</Text>
+            {entry.text ? (
+              <Text numberOfLines={1} style={[styles.summaryText, { color: c.textSecondary, flex: 1 }]}>{`· ${entry.text}`}</Text>
             ) : null}
           </View>
         </Card>
@@ -196,14 +201,13 @@ export function MorningMoodCard({
   return (
     <JournalCard
       day={day}
-      title="Ce matin"
-      placeholder="Une intention pour la journée… (facultatif)"
+      title={label}
+      placeholder={placeholder}
       tags={tags}
-      entry={entry ? { mood: entry.mood, energy: entry.energy, text: entry.note } : undefined}
-      onSave={(e) => onSave({ mood: e.mood, energy: e.energy, note: e.text })}
+      entry={entry}
+      onSave={onSave}
       footer={
         entry?.mood != null ? (
-          // Tout est déjà enregistré au fil de la saisie : le bouton replie juste la carte.
           <View style={{ alignItems: 'flex-end' }}>
             <Button label="Terminé" onPress={() => setEditing(false)} style={{ paddingVertical: 9 }} />
           </View>
@@ -211,6 +215,35 @@ export function MorningMoodCard({
       }
     />
   );
+}
+
+/** Humeur du matin : version courte du journal (la note sert d'intention pour la journée). */
+export function MorningMoodCard({
+  day,
+  entry,
+  onSave,
+  tags,
+}: {
+  day: string;
+  entry: MorningEntry | undefined;
+  onSave: (e: { mood: Mood | null; energy: Energy | null; note: string }) => void;
+  tags?: string[];
+}) {
+  return (
+    <FoldingMoodCard
+      day={day}
+      label="Ce matin"
+      placeholder="Une intention pour la journée… (facultatif)"
+      tags={tags}
+      entry={entry ? { mood: entry.mood, energy: entry.energy, text: entry.note } : undefined}
+      onSave={(e) => onSave({ mood: e.mood, energy: e.energy, note: e.text })}
+    />
+  );
+}
+
+/** Journal du soir : même comportement que le matin. */
+export function EveningMoodCard({ day, entry, onSave, tags }: { day: string; entry: Entry | undefined; onSave: (e: Entry) => void; tags?: string[] }) {
+  return <FoldingMoodCard day={day} label="Ce soir" placeholder="Une note sur ta journée… #étiquettes" tags={tags} entry={entry} onSave={onSave} />;
 }
 
 const styles = StyleSheet.create({

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AddHabitSheet, AddSlotSheet, ManageHabitsSheet, SlotDetailSheet, type NewSlot } from '@/components/today/sheets';
 import { HabitsCard } from '@/components/today/habits-card';
-import { JournalCard, MorningMoodCard } from '@/components/today/journal-card';
+import { EveningMoodCard, MorningMoodCard } from '@/components/today/journal-card';
 import { NotesCard } from '@/components/today/notes-card';
 import { NowCard } from '@/components/today/now-card';
 import { RoutineCard } from '@/components/today/routine-card';
@@ -169,13 +169,7 @@ export default function TodayScreen() {
         />
       ) : null,
     evening: showEvening ? (
-      <JournalCard
-        day={day}
-        title="Ce soir"
-        entry={data.journal[day]}
-        tags={tags}
-        onSave={(e) => run(() => saveJournal(db, day, e))}
-      />
+      <EveningMoodCard key={day} day={day} entry={data.journal[day]} tags={tags} onSave={(e) => run(() => saveJournal(db, day, e))} />
     ) : isToday ? (
       <View style={{ alignItems: 'center' }}>
         <TextButton label="Écrire dans le journal du soir" onPress={() => setWriteEarly(true)} />
