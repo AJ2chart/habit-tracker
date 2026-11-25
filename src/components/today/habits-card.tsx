@@ -66,7 +66,12 @@ export function HabitsCard({
                 pressed && { opacity: 0.7 },
               ]}>
               <Text style={[styles.name, { color: on ? c.onAccent : c.text }]}>{on ? `✓ ${h.name}` : h.name}</Text>
-              {isLate ? <Text style={[styles.streak, { color: c.warn, opacity: 1 }]}>2 j sans</Text> : null}
+              {isLate ? (
+                // Petit « ! » orange : pas faite depuis 2 jours (le détail est lu par le lecteur d'écran).
+                <View style={[styles.warn, { backgroundColor: c.warn }]}>
+                  <Text style={[styles.warnText, { color: c.background }]}>!</Text>
+                </View>
+              ) : null}
               {st > 1 ? <Text style={[styles.streak, { color: on ? c.onAccent : c.textSecondary }]}>{`${st} j`}</Text> : null}
             </Pressable>
           );
@@ -88,4 +93,6 @@ const styles = StyleSheet.create({
   add: { borderStyle: 'dashed' },
   name: { fontSize: 14, fontWeight: '500' },
   streak: { fontSize: 12, opacity: 0.8 },
+  warn: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  warnText: { fontSize: 11, fontWeight: '800', lineHeight: 13 },
 });
